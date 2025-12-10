@@ -1,4 +1,5 @@
 #include "Dictionary.h"
+#include <fstream>
 // implement Dicionary.cpp here
 Dictionary::Dictionary() : m_root(new TrieNode()) {}
 
@@ -6,6 +7,16 @@ Dictionary::~Dictionary() { delete m_root; }
 
 void Dictionary::loadFromFile(const string &filename)
 {
+    /*
+    compatible file type:
+        .txt
+        .csv
+        .tsv
+        .json
+        .xml
+    */
+    openTxt(filename); // .txt
+
 }
 
 bool Dictionary::insert(const string &word)
