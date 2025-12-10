@@ -11,7 +11,7 @@ void Dictionary::loadFromFile(const string &filename)
 bool Dictionary::insert(const string &word)
 {
     TrieNode *current = m_root;
-    for (int i = 0; i < word.length(); ++i)
+    for (int i = 0; i < int(word.length()); ++i)
     {
         if (!isalpha(word[i]))
             continue;
@@ -24,7 +24,7 @@ bool Dictionary::insert(const string &word)
             current->m_children[index] = new TrieNode(); // create new child node
 
             // check if the current letter is the end of the word
-            if (i == (word.length() - 1))
+            if (i == int(word.length() - 1))
             {
                 current->m_isEndOfWord = true;
                 current->m_word = word; // store the word in the dictionary
@@ -38,10 +38,12 @@ bool Dictionary::insert(const string &word)
 
 bool Dictionary::search(const string &word)
 {
+    return false;
 }
 
 TrieNode findNode(const char &letter)
 {
+    return TrieNode();
 }
 
 void printDictionary()
