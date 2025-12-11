@@ -45,6 +45,10 @@ private:
     // Helper declarations go here
     **********************************/
     bool openTxt(const string &filename);
+    bool openCsv(const string &filename);
+    bool openTsv(const string &filename);
+    bool openJson(const string &filename);
+    bool openXml(const string &filename);
 };
 
 class SpellChecker
@@ -55,7 +59,9 @@ public:
 private:
     // private members here
 
-    // helper functions
+    /*********************************
+    // Helper declarations go here
+    **********************************/
 };
 
 #endif

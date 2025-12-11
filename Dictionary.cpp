@@ -48,20 +48,25 @@ bool Dictionary::insert(const string &word)
 
 bool Dictionary::search(const string &word)
 {
+    // implement
+
     return false;
 }
 
 TrieNode findNode(const char &letter)
 {
+    // implement
+
     return TrieNode();
 }
 
 void printDictionary()
 {
+    // implement
 }
 
 /*********************************
-// Helper Functions
+// Dictionary Helper Functions
 **********************************/
 bool Dictionary::openTxt(const string &filename) // open .txt file
 {
