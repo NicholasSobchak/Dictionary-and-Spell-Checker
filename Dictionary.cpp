@@ -110,3 +110,23 @@ bool Dictionary::openTxt(const string &filename) // open .txt file
     file.close();
     return true;
 }
+
+bool Dictionary::openCsv(const string &filename)
+{
+	return true;
+}
+
+bool Dictionary::openTsv(const string &filename)                                
+{
+	return true;
+}
+
+bool Dictionary::openJson(const string &filename)
+{
+	return true;
+}
+
+bool Dictionary::openXml(const string &filename)
+{
+	return true;
+}
