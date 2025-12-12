@@ -23,11 +23,22 @@ void Dictionary::loadFromFile(const string &filename)
 	else extension = filename.substr(p);
 
 	// control file calls
-	if (extension == ".txt") openTxt(filename); // .txt
-	if (extension == ".csv") openCsv(filename); // .txt
-	if (extension == ".tsv") openTsv(filename); // .txt
-	if (extension == ".json") openJson(filename); // .txt
-	if (extension == ".xml") openXml(filename); // .txt
+	if (extension == ".txt") 
+		openTxt(filename); // .txt
+	
+	if (extension == ".csv") 
+		openCsv(filename); // .csv
+	
+	if (extension == ".tsv") 
+		openTsv(filename); // .tsv
+	
+	if (extension == ".json") 
+		openJson(filename); // .json
+	
+	if (extension == ".xml") 
+		openXml(filename); // .xml
+	
+	else cout << "File extension not recognized!" << endl;
 }
 
 bool Dictionary::insert(const string &word)
@@ -125,16 +136,16 @@ bool Dictionary::openTxt(const string &filename) // open .txt file
 
 bool Dictionary::openCsv(const string &filename)
 {
-    	// open file
-    	ifstream file(filename);
+    // open file
+    ifstream file(filename);
 	if (!file.is_open())
-    	{
-        	throw runtime_error("Error: Cannot open file!");
+    {
+       	throw runtime_error("Error: Cannot open file!");
 		return false;
-    	}
+    }
 
-    	// parse using stringstream??
-    	string key, value;	
+    // parse using stringstream??
+   	string key, value;	
 
 	// if key == word
 
