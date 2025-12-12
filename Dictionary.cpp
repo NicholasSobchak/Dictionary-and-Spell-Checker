@@ -7,15 +7,27 @@ Dictionary::~Dictionary() { delete m_root; }
 
 void Dictionary::loadFromFile(const string &filename)
 {
-    /*
-    compatible file type:
+	/*
+	   compatible file type:
         .txt
         .csv
         .tsv
         .json
         .xml
     */
-    openTxt(filename); // .txt
+	// parse filename
+	size_t p = filename.find_last_of('.');
+	string extension = "";
+
+	if (p == string::npos) cout << "File has no extension!" << endl;
+	else extension = filename.substr(p);
+
+	// control file calls
+	if (extension == ".txt") openTxt(filename); // .txt
+	if (extension == ".csv") openCsv(filename); // .txt
+	if (extension == ".tsv") openTsv(filename); // .txt
+	if (extension == ".json") openJson(filename); // .txt
+	if (extension == ".xml") openXml(filename); // .txt
 }
 
 bool Dictionary::insert(const string &word)
@@ -62,7 +74,7 @@ TrieNode findNode(const char &letter)
 
 void printDictionary()
 {
-    // implement
+    // implement in-order traversal
 }
 
 /*********************************
@@ -78,7 +90,7 @@ bool Dictionary::openTxt(const string &filename) // open .txt file
         return false;
     }
 
-    // parse words
+    // parse basic .txt using lambda
     string word;
     while (file >> word)
     {
@@ -113,11 +125,37 @@ bool Dictionary::openTxt(const string &filename) // open .txt file
 
 bool Dictionary::openCsv(const string &filename)
 {
+    	// open file
+    	ifstream file(filename);
+	if (!file.is_open())
+    	{
+        	throw runtime_error("Error: Cannot open file!");
+		return false;
+    	}
+
+    	// parse using stringstream??
+    	string key, value;	
+
+	// if key == word
+
 	return true;
 }
 
 bool Dictionary::openTsv(const string &filename)                                
 {
+	// open file
+	ifstream file(filename);
+	if (!file.is_open())
+	{
+		throw runtime_error("Error: Cannot open file!");
+		return false;
+	}
+	
+	// parse
+	string key, value;
+	
+	// if key == word
+
 	return true;
 }
 
