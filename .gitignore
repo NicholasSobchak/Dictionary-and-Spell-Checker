@@ -13,6 +13,7 @@ Testing/
 # Dictionary
 nlohmann/kaikki.org-dictionary-English.jsonl
 dictionary.db
+dictionary-small.db
 dictionary.zip
 dictionary-db.zip
 dictionary.db-shm

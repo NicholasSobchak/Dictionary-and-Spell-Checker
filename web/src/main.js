@@ -22,8 +22,8 @@ let liveSuggestedWords = [];
 
 const DISPLAY_WORD_DISALLOWED_RE = /[^A-Za-z0-9'’ -]+/g;
 const MULTISPACE_RE = /\s+/g;
-const SEARCH_INPUT_DISALLOWED_RE = /[^A-Za-z'\- .]+/g;
-const SEARCH_INPUT_ALLOWED_RE = /^[A-Za-z'\- .]+$/;
+const SEARCH_INPUT_DISALLOWED_RE = /[^A-Za-z0-9'\- .]+/g;
+const SEARCH_INPUT_ALLOWED_RE = /^[A-Za-z0-9'\- .]+$/;
 
 // Ghost autofill
 const ghostTyped = document.getElementById('ghostTyped');
@@ -318,20 +318,20 @@ function addSection(title) {
   return section;
 }
 
-function appendNumberedList(section, items) {
+function appendNumberedList(section, items, visibleCount = 5) {
   const list = document.createElement('ol');
   list.className = 'list';
 
   items.forEach((text, idx) => {
     const item = document.createElement('li');
     item.textContent = text;
-    if (idx >= 5) item.classList.add('extra');
+    if (idx >= visibleCount) item.classList.add('extra');
     list.appendChild(item);
   });
 
   section.appendChild(list);
 
-  if (items.length > 5) {
+  if (items.length > visibleCount) {
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'toggle-btn';
@@ -540,7 +540,7 @@ function renderWord(data) {
 
   const etySection = addSection('Etymology');
   if (Array.isArray(data.etymology) && data.etymology.length) {
-    appendNumberedList(etySection, data.etymology);
+    appendNumberedList(etySection, data.etymology, 1);
   } else {
     const empty = document.createElement('div');
     empty.className = 'empty';

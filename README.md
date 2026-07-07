@@ -2,7 +2,8 @@
 
 <h4 align="center">A Quick Lookup Dictionary at your service.</h4>
 <p align="center">
-  <a href="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions"><img src="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/ci.yml/badge.svg" alt="Build and Test"></a>
+  <a href="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/ci.yml"><img src="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/ci.yml/badge.svg" alt="Build and Test"></a>
+  <a href="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/deploy.yml"><img src="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a>
   <a href="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/releases"><img src="https://img.shields.io/github/v/release/NicholasSobchak/QuickQuill-Dictionary-SpellChecker?color=purple&cachebust=1" alt="Release">
   <a href="https://quickquill.ink"><img src="https://img.shields.io/badge/website-quickquill.ink-black" alt="Website"></a>
 </p>
@@ -24,17 +25,19 @@ It supports fast word lookup, spell correction, and rich dictionary data (defini
     - Examples
     - Forms/inflections and etymology
 
+> **Note:** The live deployment at [quickquill.ink](https://quickquill.ink) uses a trimmed dictionary (~200K words) to keep the free-tier VPS fast and responsive. The full database supports **over 1.28 million words** at the same speed — see the [analytics](#analytics) section below. The only words cut are obscure, obsolete word forms (rare plurals, scientific jargon, archaic inflections, etc.) — no common English vocabulary was removed.
+
 ### Analytics
 ```
-Import Complete:
-  | Entries     : 1,441,164
-  | Words       : 1,249,942
-  | Senses      : 1,721,645
-  | Forms       : 951,202
-  | Examples    : 718,930
-  | Synonyms    : 550,274
-  | Antonyms    : 27,485
-  | Etymologies : 550,369
+Import complete:
+  Entries     : 1,472,850
+  Words       : 1,277,185
+  Senses      : 1,761,078
+  Forms       : 973,401
+  Examples    : 745,823
+  Synonyms    : 655,080
+  Antonyms    : 33,768
+  Etymologies : 1,349,364
 ```
 
 ### Technical Highlights
@@ -53,7 +56,9 @@ Import Complete:
 ### Database Download
 To run this with the full prebuilt database, download:
 
-```https://www.dropbox.com/home/dictionary-db-sql/dictionary-db?preview=dictionary.db```
+```
+https://www.dropbox.com/home/dictionary-db-sql/dictionary-db?preview=dictionary.db
+```
 
 Then place `dictionary.db` in the project root.
 
@@ -69,7 +74,7 @@ Then place `dictionary.db` in the project root.
   - clang-tidy & clang-format
   - [Docker](https://docs.docker.com/manuals/)
   - [nginx](https://nginx.org/en/docs/)
-  - redis-plus-plus
+  - redis-plus-plus (optional, for caching)
 > Check out dependencies in vcpkg.json
 
 ### Project Layout
@@ -114,7 +119,8 @@ CI uses `clang-format-17` by default.
 
 1.  **Install `pre-commit`:** If you don't have it already, install `pre-commit`:
     ```bash
-    sudo apt install pre-commit
+    sudo dnf install pre-commit # Fedora
+    brew install pre-commit     # macOS
     ```
 2.  **Install Git Hooks:** From the project root directory, install the Git hooks:
     ```bash
@@ -125,29 +131,36 @@ CI uses `clang-format-17` by default.
 
 This project uses **CMake** + **vcpkg** (manifest mode via `vcpkg.json`) to fetch/build dependencies.
 
-#### 1) Install dependencies 
+#### 1) vcpkg
+
+On Fedora, the system vcpkg package only ships the binary; you still need the full repo for the CMake toolchain file:
 
 ```bash
-~/vcpkg/vcpkg install
+sudo dnf install vcpkg
+git clone https://github.com/microsoft/vcpkg ~/vcpkg
 ```
 
-#### 2) Configure
+On Fedora and macOS, use the same vcpkg flow:
+
+```bash
+git clone https://github.com/microsoft/vcpkg ~/vcpkg
+~/vcpkg/bootstrap-vcpkg.sh
+cmake -S . -B build \
+  -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build -j
+```
+
+#### 2) Configure + Build
 
 From the project root:
 
 ```bash
 cmake -S . -B build \
   -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
-```
-
-> If you see errors like `Could not find CrowConfig.cmake` or `nlohmann_jsonConfig.cmake`,
-> it usually means you forgot `-DCMAKE_TOOLCHAIN_FILE=...` (this is a problem I was having too).
-
-#### 3) Build
-
-```bash
 cmake --build build -j
 ```
+
+> On Fedora 44+, if `redis-plus-plus` fails to build due to GCC `-Werror=maybe-uninitialized`, remove it from `vcpkg.json` — it's unused in the build.
 
 ### Run
 

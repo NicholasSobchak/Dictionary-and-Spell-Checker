@@ -17,11 +17,13 @@ TEST_CASE("Trie::insert", "[trie]")
     REQUIRE_FALSE(trie.contains("impaired"));
   }
 
-  SECTION("Trie::insert::reject non-alpha")
+  SECTION("Trie::insert::reject non-alphanumeric")
   {
     REQUIRE_FALSE(trie.insert("raven!", dct::WordId{1}, dct::Frequency{1}));
-    REQUIRE_FALSE(trie.insert("tress01", dct::WordId{2}, dct::Frequency{1}));
-    REQUIRE_FALSE(trie.contains("1she1"));
+    REQUIRE(trie.insert("tress01", dct::WordId{2}, dct::Frequency{1}));
+    REQUIRE(trie.contains("tress01"));
+    REQUIRE(trie.insert("1she1", dct::WordId{3}, dct::Frequency{1}));
+    REQUIRE(trie.contains("1she1"));
     REQUIRE_FALSE(trie.contains("%walks^!"));
   }
 

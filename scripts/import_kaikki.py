@@ -19,10 +19,10 @@ DEFAULT_DB_PATH = Path("dictionary.db")
 
 
 def sanitize_word(word: str | None) -> str:
-    """Match dct::sanitizeWord: keep only alphabetic chars, lowercase."""
+    """Match dct::sanitizeWord: keep only alphanumeric chars, lowercase."""
     if not word:
         return ""
-    return "".join(ch.lower() for ch in word if ch.isalpha())
+    return "".join(ch.lower() for ch in word if ch.isalnum())
 
 
 def table_exists(conn: sqlite3.Connection, table: str) -> bool:

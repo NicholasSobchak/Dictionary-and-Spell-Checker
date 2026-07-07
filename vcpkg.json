@@ -5,7 +5,6 @@
     "crow",
     "sqlite3",
     "nlohmann-json",
-    "catch2",
-    "redis-plus-plus"
+    "catch2"
   ]
 }

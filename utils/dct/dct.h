@@ -9,7 +9,7 @@
 namespace dct
 {
 
-inline constexpr int g_alpha{26};
+inline constexpr int g_alpha{36}; // 26 letters + 10 digits
 inline constexpr int g_defaultId{-1};
 inline constexpr int g_max_suggestions{30};
 
@@ -61,7 +61,7 @@ inline std::string sanitizeWord(std::string_view word)
 
   for (unsigned char c : word)
   {
-    if (!std::isalpha(c))
+    if (!std::isalnum(c))
     {
       continue;
     }

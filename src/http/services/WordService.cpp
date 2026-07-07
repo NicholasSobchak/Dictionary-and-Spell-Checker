@@ -112,7 +112,7 @@ SearchResult WordService::search(const std::string &word) const
   const bool allowedChars = std::all_of(
       decoded.begin(), decoded.end(),
       [](unsigned char c)
-      { return std::isalpha(c) || c == '\'' || c == '-' || c == ' ' || c == '.'; });
+      { return std::isalnum(c) || c == '\'' || c == '-' || c == ' ' || c == '.'; });
 
   if (!allowedChars)
   {

@@ -41,6 +41,7 @@ private:
 
   std::unique_ptr<TrieNode> m_root;
   static int indexForChar(char c);
+  static char charForIndex(int index);
 
   bool removeWord(TrieNode *node, std::string_view word);
   void dumpNode(const TrieNode *node, const std::string &prefix) const;

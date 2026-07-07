@@ -13,23 +13,27 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # Build the backend binary inside Docker (just for compilation — not pushed, not run on VPS).
+      # Using Debian bookworm ensures the binary links against the same glibc as the VPS.
+      - name: Build backend binary (Docker-based cross-compile)
+        run: |
+          DOCKER_BUILDKIT=1 docker build --target builder --output type=local,dest=/tmp/qq-build .
+          ls -lh /tmp/qq-build/src/build/src/dict_crow
+          cp /tmp/qq-build/src/build/src/dict_crow ./dict_crow
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      # Build the frontend
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            nicksobchak/quickquill:latest
-            nicksobchak/quickquill:${{ github.sha }}
+      - name: Build frontend
+        run: |
+          cd web
+          npm ci
+          npm run build
 
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.0
@@ -39,14 +43,32 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
+
             cd /var/www/quickquill
             git pull
             if [ ! -f config.json ]; then
               printf '{"database_path":"dictionary.db","server_port":8080}\n' > config.json
             fi
-            rm -rf web/node_modules && cd web && npm ci && npm run build
-            cd ..
-            docker-compose pull
-            docker-compose -f docker-compose.yml down
-            docker-compose -f docker-compose.yml up -d
-            docker image prune -f
+
+      - name: Copy artifacts to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "dict_crow,web/dist"
+          target: /var/www/quickquill
+          strip_components: 0
+
+      - name: Restart services
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            chmod +x /var/www/quickquill/dict_crow
+            sudo systemctl restart quickquill-backend
+            sudo systemctl restart nginx
+            echo "Deploy complete"

@@ -177,7 +177,7 @@ std::string Trie::getPrefix(std::string_view word) const
       break;
     }
 
-    prefix.push_back(static_cast<char>('a' + index));
+    prefix.push_back(charForIndex(index));
     node = node->m_children[index].get();
   }
 
@@ -218,13 +218,25 @@ void Trie::collectWithPrefix(
 
 int Trie::indexForChar(char c)
 {
-  auto lowercase = static_cast<unsigned char>(std::tolower(
-      static_cast<unsigned char>(c))); // auto as opposed to unsigned char just makes it safer
-  if (lowercase < 'a' || lowercase > 'z')
+  auto lowercase = static_cast<unsigned char>(std::tolower(static_cast<unsigned char>(c)));
+  if (lowercase >= 'a' && lowercase <= 'z')
   {
-    return -1; // all non-alpha will return -1
+    return lowercase - 'a';
   }
-  return lowercase - 'a';
+  if (lowercase >= '0' && lowercase <= '9')
+  {
+    return 26 + (lowercase - '0');
+  }
+  return -1;
+}
+
+char Trie::charForIndex(int index)
+{
+  if (index >= 0 && index < 26)
+  {
+    return static_cast<char>('a' + index);
+  }
+  return static_cast<char>('0' + (index - 26));
 }
 
 void Trie::dumpNode(const TrieNode *node, const std::string &prefix) const
@@ -237,7 +249,7 @@ void Trie::dumpNode(const TrieNode *node, const std::string &prefix) const
   // DFS
   for (int i{0}; i < dct::g_alpha; ++i)
   {
-    char letter{static_cast<char>('a' + i)};
+    char letter{charForIndex(i)};
     const TrieNode *child = node->m_children[i].get();
     if (!child)
     {
@@ -346,7 +358,7 @@ void Trie::wordsFromNode(
   {
     if (node->m_children[i])
     {
-      char letter{static_cast<char>('a' + i)};
+      char letter{charForIndex(i)};
       currentWord.push_back(letter);
       wordsFromNode(node->m_children[i].get(), currentWord, out, limit);
       currentWord.pop_back();
