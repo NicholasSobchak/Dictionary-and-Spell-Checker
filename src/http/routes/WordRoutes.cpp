@@ -13,7 +13,7 @@ namespace http
 {
 namespace
 {
-const std::string kDistRoot = "web/dist/web/browser";
+const std::string kDistRoot = "web/dist/browser";
 const std::string kAssetsRoot = kDistRoot + "/assets/";
 
 namespace fs = std::filesystem;
@@ -208,7 +208,7 @@ bool isUnderRoot(const fs::path &root, const fs::path &candidate)
  */
 void registerWordRoutes(crow::SimpleApp &app)
 {
-  // static frontend from Angular build (web/dist/web/browser)
+  // static frontend from Angular build (web/dist/browser)
   CROW_ROUTE(app, "/")
   ([] { return htmlResponseFromFile(kDistRoot + "/index.html"); });
 
