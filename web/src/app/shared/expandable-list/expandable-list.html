@@ -1,0 +1,13 @@
+<ol class="list" [class.show-all]="expanded()">
+  @for (item of items(); track $index) {
+    <li [class.extra]="$index >= maxVisible()">{{ item }}</li>
+  }
+</ol>
+@if (hiddenCount > 0) {
+  <div style="display: flex; justify-content: center;">
+    <button type="button" class="toggle-btn" (click)="toggle()">
+      {{ expanded() ? 'see less' : 'see more' }}
+      <span class="arrow">{{ expanded() ? '^' : 'v' }}</span>
+    </button>
+  </div>
+}

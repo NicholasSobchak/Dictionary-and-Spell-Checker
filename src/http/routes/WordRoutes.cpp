@@ -13,7 +13,7 @@ namespace http
 {
 namespace
 {
-const std::string kDistRoot = "web/dist";
+const std::string kDistRoot = "web/dist/web/browser";
 const std::string kAssetsRoot = kDistRoot + "/assets/";
 
 namespace fs = std::filesystem;
@@ -208,9 +208,33 @@ bool isUnderRoot(const fs::path &root, const fs::path &candidate)
  */
 void registerWordRoutes(crow::SimpleApp &app)
 {
-  // static frontend from Vite build (web/dist)
+  // static frontend from Angular build (web/dist/web/browser)
   CROW_ROUTE(app, "/")
   ([] { return htmlResponseFromFile(kDistRoot + "/index.html"); });
+
+  // SPA fallback routes — serve index.html for client-side routing
+  CROW_ROUTE(app, "/search-history")
+  ([] { return htmlResponseFromFile(kDistRoot + "/index.html"); });
+
+  CROW_ROUTE(app, "/suggestions")
+  ([] { return htmlResponseFromFile(kDistRoot + "/index.html"); });
+
+  // Serve root-level static files (JS bundles, CSS, favicon)
+  CROW_ROUTE(app, "/<string>")
+  (
+      [](const std::string &path)
+      {
+        const fs::path root = fs::weakly_canonical(kDistRoot);
+        const fs::path candidate = fs::weakly_canonical(root / fs::path(path));
+        if (!isUnderRoot(root, candidate) || !fs::is_regular_file(candidate))
+        {
+          // Unknown path — fall back to index.html for SPA routing
+          return htmlResponseFromFile(kDistRoot + "/index.html");
+        }
+        const std::string full = candidate.string();
+        const auto mime = guessContentType(full);
+        return fileResponseFromFile(full, ContentType(mime));
+      });
 
   // Serve hashed assets (and public assets) with a catch-all in /assets/
   CROW_ROUTE(app, "/assets/<path>")

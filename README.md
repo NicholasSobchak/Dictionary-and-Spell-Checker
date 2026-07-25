@@ -62,15 +62,15 @@ https://www.dropbox.com/home/dictionary-db-sql/dictionary-db?preview=dictionary.
 
 Then place `dictionary.db` in the project root.
 
-### This Project Uses
+### Tech Stack 
   - C++17
   - python3
+  - Angular 21.2.0
   - [SQLite3](https://sqlite.org/cintro.html) 
   - [Crow (HTTP)](https://crowcpp.org/master/)
   - [Catch2](https://github.com/catchorg/Catch2)
   - [CMake](https://cmake.org/documentation/)
   - [nlohmann/json](https://json.nlohmann.me/)
-  - [Vite](https://vite.dev/) (Node.js)
   - clang-tidy & clang-format
   - [Docker](https://docs.docker.com/manuals/)
   - [nginx](https://nginx.org/en/docs/)

@@ -1,0 +1,164 @@
+<div class="logo-container">
+  <div class="brand">
+    <img class="brand-logo" src="/assets/QuickQuill-logo.png" alt="QuickQuill" />
+  </div>
+  <img src="/assets/school_line.png" alt="" class="header-line" />
+</div>
+
+<section class="card">
+  <div class="row">
+    <button class="prompt" type="button" aria-label="Look up word" (click)="lookup()">
+      <img class="prompt-icon" src="/assets/magnifying-glass-svgrepo-com.svg" alt="" />
+    </button>
+    <div class="autofill-wrapper">
+      <input
+        [value]="searchInput()"
+        placeholder="lookup &lt;word&gt;"
+        autocomplete="off"
+        (input)="onInput($event)"
+        (keydown)="onKeyDown($event)"
+      />
+      <div class="ghost-layer" aria-hidden="true">
+        <span class="ghost-typed">{{ ghostTyped }}</span><span class="ghost-suffix">{{ ghostSuffix }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="status">
+    @if (isLoading()) {
+      <span class="spinner"></span>
+    }
+    <span>{{ statusMessage() }}</span>
+    @if (showGhostHint) {
+      <span class="ghost-hint" (click)="acceptGhost()">
+        <span class="hint-tab">TAB</span> to complete
+      </span>
+    }
+  </div>
+
+  @if (notFound()) {
+    <div class="status" style="color: #ff6666">
+      @if (notFound()!.suggestion) {
+        <span>Did you mean
+          <a href="#" class="suggestion-link" (click)="searchWord(notFound()!.suggestion!); $event.preventDefault()">
+            <em class="corrected-word">{{ notFound()!.suggestion }}</em>
+          </a>?
+        </span>
+      } @else {
+        <span>Word '{{ searchInput() }}' not found.</span>
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <div class="status" style="color: #ff6666">
+      @if (error()!.error === 'Enter a valid word') {
+        400: Enter a valid word
+      } @else {
+        Error: {{ error()!.error }}
+      }
+    </div>
+  }
+
+  @if (result()) {
+    <div class="result-box has-results">
+      <h2 class="lemma">{{ formatLemma() }}</h2>
+
+      @if (result()!.alternative_searches.length) {
+        <div class="alternative-searches">
+          <span class="alternative-searches-label">Alternative Searches:</span>
+          @for (alt of result()!.alternative_searches; track alt; let i = $index) {
+            @if (i > 0) {
+              <span class="alternative-searches-separator">,</span>
+            }
+            <a href="#" class="alternative-search-link" (click)="searchWord(alt); $event.preventDefault()">{{ alt }}</a>
+          }
+        </div>
+      }
+
+      <div class="section">
+        <div class="label">Definition</div>
+        @if (getDefinitions().length) {
+          <app-expandable-list [items]="getDefinitions()" />
+        } @else {
+          <div class="empty">No definitions available.</div>
+        }
+      </div>
+
+      <div class="section">
+        <div class="label">Synonyms</div>
+        @if (getSynonyms().length) {
+          <div>
+            @for (syn of getSynonyms(); track syn) {
+              <app-chip [label]="syn" (clicked)="searchWord($event)" />
+            }
+          </div>
+        } @else {
+          <div class="empty">No synonyms available.</div>
+        }
+      </div>
+
+      <div class="section">
+        <div class="label">Antonyms</div>
+        @if (getAntonyms().length) {
+          <div>
+            @for (ant of getAntonyms(); track ant) {
+              <app-chip [label]="ant" (clicked)="searchWord($event)" />
+            }
+          </div>
+        } @else {
+          <div class="empty">No antonyms available.</div>
+        }
+      </div>
+
+      <div class="section">
+        <div class="label">Examples</div>
+        @if (getExamples().length) {
+          <app-expandable-list [items]="getExamples()" />
+        } @else {
+          <div class="empty">No examples available.</div>
+        }
+      </div>
+
+      <div class="section">
+        <div class="label">Forms</div>
+        @if (result()!.forms.length) {
+          <div>
+            @for (form of result()!.forms; track form.form) {
+              <app-chip
+                [label]="form.tag ? form.form + ' (' + form.tag + ')' : form.form"
+                (clicked)="searchWord(form.form)"
+              />
+            }
+          </div>
+        } @else {
+          <div class="empty">No forms available.</div>
+        }
+      </div>
+
+      <div class="section">
+        <div class="label">Etymology</div>
+        @if (result()!.etymology.length) {
+          <app-expandable-list [items]="result()!.etymology" />
+        } @else {
+          <div class="empty">No etymology available.</div>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="suggested-inline">
+    <p class="suggested-inline-title">Similar Searches</p>
+    @if (liveSuggestedWords().length) {
+      <div class="suggested-inline-list">
+        @for (word of liveSuggestedWords().slice(0, 30); track word) {
+          <button type="button" class="chip suggested-chip" (click)="searchWord(word)">
+            {{ word }}
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="suggested-empty">No suggestions yet.</div>
+    }
+  </div>
+</section>
