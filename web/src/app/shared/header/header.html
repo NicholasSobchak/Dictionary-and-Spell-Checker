@@ -1,9 +1,19 @@
 <!-- src/app/shared/header/header.component.html -->
 <header class="site-header">
-  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
-    class="nav-button">Dictionary</a>
-  <a routerLink="/suggestions" routerLinkActive="active"
-    class="nav-button">Suggested Words</a>
-  <a routerLink="/search-history" routerLinkActive="active"
-    class="nav-button">History</a>
+  <button class="hamburger" (click)="drawerOpen = !drawerOpen" aria-label="Menu">
+    {{ drawerOpen ? '\u2715' : '\u2630' }}
+  </button>
+  @if (drawerOpen) {
+    <div class="drawer-overlay" (click)="drawerOpen = false"></div>
+  }
+  <nav class="drawer" [class.open]="drawerOpen">
+    <img class="drawer-logo" src="/assets/QuickQuill-logo.png" alt="QuickQuill" />
+    <div class="drawer-section">Dictionary</div>
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
+      class="nav-link" (click)="drawerOpen = false">Search</a>
+    <a routerLink="/suggestions" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Suggested Words</a>
+    <a routerLink="/search-history" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Search History</a>
+  </nav>
 </header>
