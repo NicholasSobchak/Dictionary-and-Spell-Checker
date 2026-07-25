@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { HttpResponse } from '@angular/common/http';
+import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { Subject, Subscription, debounceTime, switchMap, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Api } from '../../services/api';
@@ -28,10 +28,10 @@ export class Dictionary implements OnInit, OnDestroy {
   isLoading = signal(false);
   statusMessage = signal('');
   liveSuggestedWords = signal<string[]>([]);
-  ghostCompletion = '';
-  ghostTyped = '';
-  ghostSuffix = '';
-  showGhostHint = false;
+  ghostCompletion = signal('');
+  ghostTyped = signal('');
+  ghostSuffix = signal('');
+  showGhostHint = signal(false);
 
   private suggest$ = new Subject<string>();
   private ghost$ = new Subject<string>();
@@ -47,7 +47,10 @@ export class Dictionary implements OnInit, OnDestroy {
 
     this.ghostSub = this.ghost$
       .pipe(
-        switchMap((word) => {
+        debounceTime(50),
+        switchMap((typed) => {
+          const lastSpace = typed.lastIndexOf(' ');
+          const word = (lastSpace >= 0 ? typed.slice(lastSpace + 1) : typed).trim();
           if (word.length < 1) return of(null);
           const searchHistory = this.storage.getHistory().slice(0, 20);
           const suggested = this.storage.getSuggestedWords().slice(0, 20);
@@ -61,15 +64,15 @@ export class Dictionary implements OnInit, OnDestroy {
           this.clearGhostText();
           return;
         }
-        const typed = this.ghostTyped;
+        const typed = this.ghostTyped();
         const completion = data.completion || '';
         const lastSpace = typed.lastIndexOf(' ');
         const base = lastSpace >= 0 ? typed.slice(0, lastSpace + 1) : '';
 
         if (completion && completion.toLowerCase().indexOf(typed.toLowerCase()) === 0) {
-          this.ghostCompletion = base + completion;
-          this.ghostSuffix = completion.substring(typed.length);
-          this.showGhostHint = true;
+          this.ghostCompletion.set(base + completion);
+          this.ghostSuffix.set(completion.substring(typed.length));
+          this.showGhostHint.set(true);
         } else {
           this.clearGhostText();
         }
@@ -82,6 +85,9 @@ export class Dictionary implements OnInit, OnDestroy {
           this.clearResult();
           return this.api.lookup(word).pipe(
             catchError((err) => {
+              if (err instanceof HttpErrorResponse && err.status >= 200 && err.status < 600) {
+                return of(new HttpResponse({ body: err.error, status: err.status }));
+              }
               this.statusMessage.set(`Network error: ${err.message || 'failed to fetch'}`);
               this.isLoading.set(false);
               return of(null);
@@ -135,15 +141,13 @@ export class Dictionary implements OnInit, OnDestroy {
     this.searchInput.set(value);
 
     const trimmed = value.trim();
-    const lastSpace = value.lastIndexOf(' ');
-    const segment = lastSpace >= 0 ? value.slice(lastSpace + 1) : value;
-    const word = segment.trim();
 
-    if (word.length < 1) {
+    if (trimmed.length < 1) {
       this.clearGhostText();
     } else {
-      this.ghostTyped = value;
-      this.ghost$.next(word);
+      this.clearGhostText();
+      this.ghostTyped.set(value);
+      this.ghost$.next(value);
     }
 
     this.suggest$.next(trimmed);
@@ -151,7 +155,7 @@ export class Dictionary implements OnInit, OnDestroy {
 
   onKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter') this.lookup();
-    if (event.key === 'Tab' && this.ghostCompletion) {
+    if (event.key === 'Tab' && this.ghostCompletion()) {
       event.preventDefault();
       this.acceptGhost();
     }
@@ -179,17 +183,17 @@ export class Dictionary implements OnInit, OnDestroy {
   }
 
   acceptGhost() {
-    if (this.ghostCompletion) {
-      this.searchInput.set(this.ghostCompletion);
+    if (this.ghostCompletion()) {
+      this.searchInput.set(this.ghostCompletion());
       this.clearGhostText();
     }
   }
 
   private clearGhostText() {
-    this.ghostCompletion = '';
-    this.ghostTyped = '';
-    this.ghostSuffix = '';
-    this.showGhostHint = false;
+    this.ghostCompletion.set('');
+    this.ghostTyped.set('');
+    this.ghostSuffix.set('');
+    this.showGhostHint.set(false);
   }
 
   private fetchSuggestions(word: string) {

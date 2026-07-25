@@ -10,10 +10,6 @@ export class ExpandableList {
   maxVisible = input(5);
   expanded = signal(false);
 
-  get visibleItems(): string[] {
-    return this.expanded() ? this.items() : this.items().slice(0, this.maxVisible());
-  }
-
   get hiddenCount(): number {
     return Math.max(0, this.items().length - this.maxVisible());
   }

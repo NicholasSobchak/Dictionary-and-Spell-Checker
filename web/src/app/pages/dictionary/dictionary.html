@@ -13,23 +13,23 @@
     <div class="autofill-wrapper">
       <input
         [value]="searchInput()"
-        placeholder="lookup &lt;word&gt;"
+        placeholder="search &lt;word&gt;"
         autocomplete="off"
         (input)="onInput($event)"
         (keydown)="onKeyDown($event)"
       />
       <div class="ghost-layer" aria-hidden="true">
-        <span class="ghost-typed">{{ ghostTyped }}</span><span class="ghost-suffix">{{ ghostSuffix }}</span>
+        <span class="ghost-typed">{{ ghostTyped() }}</span><span class="ghost-suffix">{{ ghostSuffix() }}</span>
       </div>
     </div>
   </div>
 
   <div class="status">
     @if (isLoading()) {
-      <span class="spinner"></span>
+      <span class="spinner"></span>  Looking up...
     }
     <span>{{ statusMessage() }}</span>
-    @if (showGhostHint) {
+    @if (showGhostHint() && ghostSuffix()) {
       <span class="ghost-hint" (click)="acceptGhost()">
         <span class="hint-tab">TAB</span> to complete
       </span>
@@ -139,7 +139,7 @@
       <div class="section">
         <div class="label">Etymology</div>
         @if (result()!.etymology.length) {
-          <app-expandable-list [items]="result()!.etymology" />
+          <app-expandable-list [items]="result()!.etymology" [maxVisible]="1" />
         } @else {
           <div class="empty">No etymology available.</div>
         }

@@ -7,16 +7,14 @@ import { Component, input, output } from '@angular/core';
       {{ label() }}
     </a>
   `,
+  styleUrl: './chip.css',
 })
 export class Chip {
   label = input('');
-  clickable = input(true);
   clicked = output<string>();
 
   handleClick(event: Event) {
     event.preventDefault();
-    if (this.clickable()) {
-      this.clicked.emit(this.label());
-    }
+    this.clicked.emit(this.label());
   }
 }
