@@ -6,6 +6,7 @@ vcpkg/
 vcpkg_installed/
 web/node_modules/
 web/dist/
+web/.angular/
 valgrind_output.txt
 docker-compose.override.yml
 Testing/

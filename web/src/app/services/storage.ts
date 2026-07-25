@@ -7,7 +7,6 @@ const SUGGESTED_LIMIT = 1000;
 
 const DISPLAY_WORD_RE = /[^A-Za-z0-9''\s-]+/g;
 const MULTISPACE_RE = /\s+/g;
-const SEARCH_INPUT_RE = /[^A-Za-z'\s.-]+/g;
 
 @Injectable({ providedIn: 'root' })
 export class Storage {
@@ -85,14 +84,5 @@ export class Storage {
       .replace(DISPLAY_WORD_RE, ' ')
       .replace(MULTISPACE_RE, ' ')
       .trim();
-  }
-
-  sanitizeSearchInput(text: string): string {
-    if (!text) return '';
-    return text.replace(SEARCH_INPUT_RE, '');
-  }
-
-  encodePathSegment(value: string): string {
-    return encodeURIComponent(value).replace(/%20/g, '+');
   }
 }

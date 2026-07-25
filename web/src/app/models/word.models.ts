@@ -1,4 +1,4 @@
-export interface WordSense {
+interface WordSense {
   pos: string;
   definition: string;
   examples: string[];
@@ -6,7 +6,7 @@ export interface WordSense {
   antonyms: string[];
 }
 
-export interface WordForm {
+interface WordForm {
   form: string;
   tag: string;
 }
@@ -39,6 +39,3 @@ export interface WordError {
 export interface AutofillResponse {
   completion: string;
 }
-
-/** All possible responses from GET /api/word/{word} */
-export type WordResult = WordResponse | WordNotFound | WordError;

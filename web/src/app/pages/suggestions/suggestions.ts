@@ -1,11 +1,10 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { Storage } from '../../services/storage';
 
 @Component({
   selector: 'app-suggestions',
-  imports: [FormsModule, RouterLink],
+  imports: [RouterLink],
   templateUrl: './suggestions.html',
   styleUrl: './suggestions.css',
 })
@@ -14,8 +13,10 @@ export class Suggestions {
   private router = inject(Router);
 
   filterText = signal('');
+  private refreshKey = signal(0);
 
   filteredWords = computed(() => {
+    this.refreshKey();
     const words = this.storage.getSuggestedWords();
     const query = this.filterText().trim().toLowerCase();
     if (!query) return words;
@@ -28,6 +29,7 @@ export class Suggestions {
 
   clearAll() {
     this.storage.clearSuggestedWords();
+    this.refreshKey.update((k) => k + 1);
   }
 
   onFilterInput(event: Event) {
