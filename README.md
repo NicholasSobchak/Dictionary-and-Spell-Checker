@@ -170,7 +170,7 @@ cmake --build build -j
 ```
 
 Open:
-- Frontend (Vite dev server): `cd web && npm install && npm run dev` then open http://localhost:5173
+- Frontend (Angular): `npm start OR ng serve` then open http://localhost:4200
 - Backend API (Crow): http://localhost:8080 (default) — keep this running so the frontend can load data
 
 #
