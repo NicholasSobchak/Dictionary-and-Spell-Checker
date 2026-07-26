@@ -1,0 +1,70 @@
+.notepad-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  min-height: 60vh;
+  text-align: center;
+}
+
+.promt-account {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.quill {
+  width: 80px;
+  height: auto;
+  opacity: 0.8;
+  margin-bottom: 16px;
+}
+
+.notepad-title {
+  font-size: 32px;
+  letter-spacing: 0.9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+.notepad-subtitle {
+  color: var(--muted);
+  font-size: 17px;
+  margin: 0 0 32px;
+}
+
+.notepad-actions {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.notepad-login {
+  padding: 10px 24px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  text-decoration: none;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.notepad-login:hover {
+  color: var(--ink);
+}
+
+.nodepad-signup {
+  padding: 10px 24px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  cursor: pointer;
+}
+
+.nodepad-signup:hover {
+  color: var(--muted);
+}

@@ -1,0 +1,17 @@
+.profile-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  min-height: 60vh;
+  text-align: center;
+}
+
+.placeholder-message {
+  font-size: 32px;
+  letter-spacing: 0.9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0;
+}
+
