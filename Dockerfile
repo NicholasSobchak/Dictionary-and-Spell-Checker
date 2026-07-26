@@ -36,7 +36,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 # Copy only the built binary and config; do NOT copy dictionary.db (mount at runtime)
-COPY --from=builder /src/build/src/dict_crow ./dict_crow
+COPY --from=builder /src/build/engine/src/dict_crow ./dict_crow
 RUN printf '{"database_path":"dictionary.db","server_port":8080,"redis_host":"redis","redis_port":6379}\n' > config.json
 COPY --from=frontend /web/dist/browser ./web/dist/browser
 

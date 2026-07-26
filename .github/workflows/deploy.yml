@@ -16,8 +16,8 @@ jobs:
       - name: Build backend binary (Docker-based cross-compile)
         run: |
           DOCKER_BUILDKIT=1 docker build --target builder --output type=local,dest=/tmp/qq-build .
-          ls -lh /tmp/qq-build/src/build/src/dict_crow
-          cp /tmp/qq-build/src/build/src/dict_crow ./dict_crow
+          ls -lh /tmp/qq-build/src/build/engine/src/dict_crow
+          cp /tmp/qq-build/src/build/engine/src/dict_crow ./dict_crow
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
