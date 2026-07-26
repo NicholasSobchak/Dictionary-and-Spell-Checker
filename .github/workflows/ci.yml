@@ -46,7 +46,7 @@ jobs:
         sudo apt-get install -y ninja-build build-essential clang-format-17
 
     - name: Check C++ Formatting
-      run: find src include tests -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-format-17 --dry-run --Werror {} +
+      run: find engine/src engine/include engine/tests engine/utils -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-format-17 --dry-run --Werror {} +
 
     - name: Cache vcpkg binary cache
       uses: actions/cache@v4
