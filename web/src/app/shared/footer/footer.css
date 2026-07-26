@@ -12,18 +12,27 @@
   text-align: center;
 }
 
-.github-link {
+.social-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.github-link,
+.linkedin-link {
   display: inline-block;
   color: #7a7a7a;
-  margin-bottom: 12px;
   transition: color 0.2s;
 }
 
-.github-link:hover {
+.github-link:hover,
+.linkedin-link:hover {
   color: var(--ink);
 }
 
-.github-icon {
+.github-icon,
+.linkedin-icon {
   width: 24px;
   height: 24px;
   display: block;
