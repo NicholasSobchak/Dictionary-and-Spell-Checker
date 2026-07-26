@@ -17,6 +17,16 @@
   line-height: 1;
 }
 
+.hamburger .quill-icon {
+  width: 48px;
+  height: auto;
+}
+
+.hamburger .close-icon {
+  font-size: 48px;
+  color: var(--ink);
+}
+
 .drawer-overlay {
   position: fixed;
   inset: 0;
@@ -29,7 +39,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  width: 320px;
+  width: 340px;
   background: #000;
   border-right: 1px solid var(--edge);
   z-index: 50;
@@ -46,7 +56,7 @@
 }
 
 .drawer-logo {
-  width: min(260px, 130vw);
+  width: min(290px, 160vw);
   height: auto;
   margin-bottom: 24px;
 }
@@ -59,11 +69,15 @@
   padding: 12px 12px 4px;
 }
 
+.drawer-section ~ .drawer-section {
+  margin-top: 32px;
+}
+
 .nav-link {
   color: var(--muted);
   text-decoration: none;
   font-family: 'Times New Roman', Times, serif;
-  font-size: 16px;
+  font-size: 14px;
   padding: 10px 12px;
   border-radius: 0;
   transition: color 150ms ease;

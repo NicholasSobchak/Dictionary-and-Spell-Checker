@@ -1,13 +1,19 @@
 <!-- src/app/shared/header/header.component.html -->
 <header class="site-header">
   <button class="hamburger" (click)="drawerOpen = !drawerOpen" aria-label="Menu">
-    {{ drawerOpen ? '\u2715' : '\u2630' }}
+    @if (drawerOpen) {
+      <span class="close-icon">&times;</span>
+    } @else {
+      <img class="quill-icon" src="/assets/quill.png" alt="Menu" />
+    }
   </button>
   @if (drawerOpen) {
     <div class="drawer-overlay" (click)="drawerOpen = false"></div>
   }
   <nav class="drawer" [class.open]="drawerOpen">
     <img class="drawer-logo" src="/assets/QuickQuill-logo.png" alt="QuickQuill" />
+
+  <!-- Dictionary Section -->
     <div class="drawer-section">Dictionary</div>
     <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
       class="nav-link" (click)="drawerOpen = false">Search</a>
@@ -15,5 +21,15 @@
       class="nav-link" (click)="drawerOpen = false">Suggested Words</a>
     <a routerLink="/search-history" routerLinkActive="active"
       class="nav-link" (click)="drawerOpen = false">Search History</a>
+    
+  <!-- Studio Section -->
+    <div class="drawer-section">Studio</div>
+    <a routerLink="/notepad" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Notepad</a>
+
+  <!-- Account Section -->
+    <div class="drawer-section">Account</div>
+    <a routerLink="/profile" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Profile</a>
   </nav>
 </header>
