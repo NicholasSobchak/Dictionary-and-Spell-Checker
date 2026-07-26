@@ -18,8 +18,8 @@ find_package(Crow CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 
-add_subdirectory(src)
+add_subdirectory(engine/src)
 
 # Tests
 enable_testing()
-add_subdirectory(tests)
+add_subdirectory(engine/tests)

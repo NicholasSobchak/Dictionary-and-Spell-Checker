@@ -16,14 +16,6 @@ target_link_libraries(quickquill_core PUBLIC
     unofficial::sqlite3::sqlite3
 )
 
-add_library(quickquill_importer STATIC
-    data/KaikkiImporter.cpp
-)
-
-target_link_libraries(quickquill_importer PUBLIC
-    quickquill_core
-)
-
 add_library(quickquill_http STATIC
     http/Server.cpp
     http/routes/WordRoutes.cpp
@@ -44,15 +36,6 @@ add_executable(dict
 
 target_link_libraries(dict PRIVATE
     quickquill_core
-)
-
-# --- Import / Seeding Tool ---
-add_executable(dict_import
-    app/main_import.cpp
-)
-
-target_link_libraries(dict_import PRIVATE
-    quickquill_importer
 )
 
 # --- Web Application ---

@@ -7,7 +7,6 @@ add_executable(runTests
 	unit/DictionaryTests.cpp
     unit/DictionaryConcurrencyTests.cpp
 	unit/DatabaseTests.cpp
-    unit/KaikkiImporterTests.cpp
 	unit/SpellCheckerTests.cpp
 )
 
@@ -18,7 +17,6 @@ target_include_directories(runTests PRIVATE
 target_link_libraries(runTests PRIVATE
     Catch2::Catch2WithMain
     quickquill_core
-    quickquill_importer
     quickquill_http
 )
 
