@@ -1,6 +1,7 @@
 # Build
 /build/
 /bin/
+/CMakeFiles/
 .venv/
 vcpkg/
 vcpkg_installed/
@@ -10,6 +11,14 @@ web/.angular/
 valgrind_output.txt
 docker-compose.override.yml
 Testing/
+
+# Java / Spring Boot
+studio/build/
+studio/.gradle/
+.gradle/
+*.class
+*.jar
+hs_err_pid*
 
 # Dictionary
 nlohmann/kaikki.org-dictionary-English.jsonl

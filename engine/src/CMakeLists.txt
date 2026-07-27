@@ -14,40 +14,46 @@ target_include_directories(quickquill_core PUBLIC
 target_link_libraries(quickquill_core PUBLIC
     nlohmann_json::nlohmann_json
     unofficial::sqlite3::sqlite3
+    Threads::Threads
 )
 
+set_target_properties(quickquill_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 add_library(quickquill_http STATIC
-    http/Server.cpp
-    http/routes/WordRoutes.cpp
     http/services/WordService.cpp
     http/dto/WordResponse.cpp
 )
 
 target_link_libraries(quickquill_http PUBLIC
     quickquill_core
-    Crow::Crow
-    Threads::Threads
 )
 
-# --- Console Application ---
-add_executable(dict
-    app/main.cpp
+set_target_properties(quickquill_http PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# --- Shared Library for FFM ---
+# This builds libquickquill_engine.so — a C ABI wrapper around the C++ engine
+# that Java can call via the Foreign Function and Memory API (Panama FFM).
+find_package(JNI REQUIRED)
+
+add_library(quickquill_engine SHARED
+    ../native/quickquill.cpp
 )
 
-target_link_libraries(dict PRIVATE
-    quickquill_core
+target_include_directories(quickquill_engine PRIVATE
+    ../native
+    ../include
+    ../utils
+    ${JNI_INCLUDE_DIRS}
 )
 
-# --- Web Application ---
-add_executable(dict_crow
-    app/main_crow.cpp
-)
-
-target_link_libraries(dict_crow PRIVATE
+target_link_libraries(quickquill_engine PRIVATE
     quickquill_http
+    quickquill_core
+    nlohmann_json::nlohmann_json
 )
 
-# Define the static file directory for Crow at compile time
-target_compile_definitions(dict_crow PRIVATE
-    CROW_STATIC_DIR="${CMAKE_SOURCE_DIR}/web"
+# System.loadLibrary("quickquill_engine") looks for libquickquill_engine.so on Linux,
+# so keep the default "lib" prefix.
+set_target_properties(quickquill_engine PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
 )

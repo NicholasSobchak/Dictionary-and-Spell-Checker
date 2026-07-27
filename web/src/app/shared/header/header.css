@@ -20,6 +20,8 @@
 .hamburger .quill-icon {
   width: 48px;
   height: auto;
+  filter: brightness(0) invert(1);
+  forced-color-adjust: none;
 }
 
 .hamburger .close-icon {
