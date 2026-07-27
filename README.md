@@ -40,25 +40,6 @@ Import complete:
   Etymologies : 1,349,364
 ```
 
-### Architecture
-
-```
-┌──────────────┐     ┌──────────────────┐     ┌────────────────────┐
-│   Angular    │────▶│   Spring Boot    │────▶│  C++ Engine (.so)  │
-│   Frontend   │     │   (Java FFM)     │     │  Dictionary        │
-│  :4200       │     │   :8080          │     │  SpellChecker      │
-│              │     │                  │     │  SQLite + Trie     │
-└──────────────┘     └──────────────────┘     └────────────────────┘
-     proxy /api/*          │                         │
-                           ▼                         ▼
-                     ┌──────────┐            ┌──────────────┐
-                     │ PostgreSQL│            │ dictionary.db│
-                     │ (user data)│            │  (539 MB)    │
-                     └──────────┘            └──────────────┘
-```
-
-The C++ engine is compiled into `libquickquill_engine.so` with a flat C ABI (`extern "C"`). Spring Boot calls it through Panama FFM — no JNI or C glue code needed.
-
 ### Technical Highlights
   - C++17 engine with trie-based autocomplete and thread-local SQLite connections
   - Java FFM (Foreign Function & Memory API) for native calls — no JNI
@@ -66,20 +47,20 @@ The C++ engine is compiled into `libquickquill_engine.so` with a flat C ABI (`ex
   - Angular 21 frontend with RxJS debounced search streams
   - In-memory LRU caching with thread-safe access
   - Dockerized deployment (multi-stage: C++ engine + Spring Boot + Angular)
-  - CTest + Catch2 for C++ tests
+  - Catch2 for C++ tests
+
+> The C++ engine is compiled into `libquickquill_engine.so` with a flat C ABI (`extern "C"`). Spring Boot calls it through Panama FFM — no JNI or C glue code needed.
 
 #
 ## Setting Up / Building this Project Locally
 
 ### Prerequisites
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Java | 22+ | Spring Boot backend |
-| CMake | 3.16+ | C++ engine build |
-| vcpkg | latest | C++ dependency management |
-| Node.js | 20+ | Angular frontend |
-| Clang-format | 17 | Code formatting (CI) |
+  - Java (22+)
+  - CMake (3.16+)
+  - vcpkg (latest) 
+  - Node.js (20+)
+  - Clang-format (17)
 
 ### Database Download
 To run this with the full prebuilt database, download:
@@ -95,24 +76,20 @@ Then place `dictionary.db` in the project root.
   - **Engine:** C++17, SQLite3, nlohmann/json, CMake, vcpkg
   - **Frontend:** Angular 21, RxJS, TypeScript
   - **Tests:** Catch2 (C++), JUnit (Java)
-  - **Infra:** Docker, docker-compose, nginx, GitHub Actions CI/CD
+  - Deploy**:** Docker, docker-compose, nginx 
 
 ### Project Layout
 ```
 .
-├── engine/                 # C++ dictionary engine
-│   ├── native/             # C ABI wrapper (extern "C" for FFM)
-│   ├── include/            # Headers (Dictionary, SpellChecker, WordService)
-│   ├── src/                # Implementation + CMakeLists.txt
-│   └── tests/              # Catch2 unit + integration tests
-├── studio/                 # Spring Boot backend
-│   └── src/main/java/      # WordController, WordEngine (FFM), EngineConfig
-├── web/                    # Angular frontend
-│   └── src/app/            # Pages, services, models
-├── vcpkg.json              # C++ dependencies (manifest mode)
-├── CMakeLists.txt          # Root CMake config
-├── Dockerfile              # Multi-stage build (engine + backend + frontend)
-└── docker-compose.yml      # Production orchestration
+├── engine/                 
+│   ├── native/            
+│   ├── include/          
+│   ├── src/             
+│   └── tests/          
+├── studio/            
+│   └── src/main/java/
+└── web/             
+    └── src/app/    
 ```
 
 ### Configuration
@@ -125,9 +102,8 @@ server.port=8080
 quickquill.dictionary-path=../dictionary.db
 ```
 
-Override via environment variables or CLI args:
 ```bash
-./gradlew bootRun --args='--quickquill.dictionary-path=/path/to/dictionary.db'
+./gradlew bootRun 
 ```
 
 ### Code Formatting (Pre-commit Hook)
@@ -162,10 +138,8 @@ git clone --depth=1 https://github.com/microsoft/vcpkg.git
 cmake -S . -B build \
   -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
   -DVCPKG_TARGET_TRIPLET=x64-linux
-cmake --build build --target quickquill_engine
+cmake --build build 
 ```
-
-This produces `build/engine/src/libquickquill_engine.so`.
 
 #### 3) Build Spring Boot Backend
 
@@ -196,39 +170,21 @@ cd web
 npm start
 ```
 
-Open http://localhost:4200 — the Angular dev server proxies `/api/*` to `localhost:8080` automatically.
-
-> The backend takes ~40 seconds to start on first boot while loading the 539MB dictionary into memory.
-
 ### Run Tests
 
 **C++ tests (Catch2):**
 ```bash
-cmake --build build --target runTests
-ctest --test-dir build --output-on-failure
-```
-
-**C++ formatting check:**
-```bash
-find engine/src engine/include engine/tests engine/utils \
-  -type f \( -name "*.cpp" -o -name "*.h" \) \
-  -exec clang-format-17 --dry-run --Werror {} +
+cmake --build build 
+./build/engine/tests/runTests
 ```
 
 #
 ## API
 
-| Endpoint | Description | Response |
-|----------|-------------|----------|
-| `GET /api/word/<word>` | Dictionary lookup | Full word JSON (200) or not-found with suggestion (404) |
-| `GET /api/suggest/<word>` | Spelling suggestions | JSON array of similar words |
-| `GET /api/synonym/<word>` | Synonym suggestions | JSON array of random synonyms |
-| `GET /api/autofill/<word>` | Autocomplete | `{"completion": "..."}` |
-
-Query params for autofill:
-```
-GET /api/autofill/hel?history=["hello","help"]&suggested=["helpful"]
-```
+- `GET /api/word/<word>` — Dictionary lookup
+- `GET /api/suggest/<word>` — Spelling suggestions
+- `GET /api/synonym/<word>` — Synonym suggestions
+- `GET /api/autofill/<word>` — Autocomplete
 
 Response shape for `/api/word/<word>`:
 ```json
@@ -254,37 +210,6 @@ Response shape for `/api/word/<word>`:
   "alternative_searches": []
 }
 ```
-
-#
-## Docker
-
-Build and run everything:
-```bash
-docker compose up --build
-```
-
-The multi-stage Dockerfile builds:
-1. Angular frontend (`node:20-slim`)
-2. C++ engine shared library (`debian:bookworm-slim`)
-3. Spring Boot JAR (`eclipse-temurin:22-jdk`)
-4. Runtime image (`eclipse-temurin:22-jre`)
-
-Mount `dictionary.db` into the container:
-```bash
-docker compose up -d
-```
-
-The `docker-compose.yml` maps `./dictionary.db` into the container at `/app/dictionary.db`.
-
-#
-## Deployment
-
-Push to `main` triggers the deploy workflow which:
-1. Builds `libquickquill_engine.so` (CMake + vcpkg)
-2. Builds the Spring Boot JAR (`./gradlew bootJar`)
-3. Builds the Angular frontend
-4. SCPs artifacts to the VPS
-5. Restarts `quickquill-backend` and `nginx` systemd services
 
 #
 ## Academia Use & Data Attribution
