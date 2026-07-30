@@ -10,12 +10,30 @@ services:
     environment:
       - SERVER_PORT=8080
       - SPRING_APPLICATION_JSON={"quickquill":{"dictionary-path":"/app/dictionary.db"}}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/quickquill
+      - SPRING_DATASOURCE_USERNAME=quickquill
+      - SPRING_DATASOURCE_PASSWORD=quickquill
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:8080/api/word/test || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+    depends_on:
+      - postgres
+      # - redis
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=quickquill
+      - POSTGRES_USER=quickquill
+      - POSTGRES_PASSWORD=quickquill
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
 
   # redis:
   #   image: redis:7-alpine
@@ -41,3 +59,4 @@ services:
 
 volumes:
   nginx_data:
+  postgres_data:

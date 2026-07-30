@@ -43,10 +43,11 @@ Import complete:
 ### Technical Highlights
   - C++17 engine with trie-based autocomplete and thread-local SQLite connections
   - Java FFM (Foreign Function & Memory API) for native calls — no JNI
-  - Spring Boot REST API
+  - Spring Boot REST API with Spring Data JPA + PostgreSQL for user auth
+  - BCrypt password hashing with session token management
   - Angular 21 frontend with RxJS debounced search streams
   - In-memory LRU caching with thread-safe access
-  - Dockerized deployment (multi-stage: C++ engine + Spring Boot + Angular)
+  - Dockerized deployment (multi-stage: C++ engine + Spring Boot + Angular + PostgreSQL)
   - Catch2 for C++ tests
 
 > The C++ engine is compiled into `libquickquill_engine.so` with a flat C ABI (`extern "C"`). Spring Boot calls it through Panama FFM — no JNI or C glue code needed.
@@ -61,6 +62,7 @@ Import complete:
   - vcpkg (latest) 
   - Node.js (20+)
   - Clang-format (17)
+  - PostgreSQL (16+)
 
 ### Database Download
 To run this with the full prebuilt database, download:
@@ -72,11 +74,12 @@ https://www.dropbox.com/home/dictionary-db-sql/dictionary-db?preview=dictionary.
 Then place `dictionary.db` in the project root.
 
 ### Tech Stack
-  - **Backend:** Java 22, Spring Boot 4.1, Foreign Function & Memory API (Panama FFM)
+  - **Backend:** Java 22, Spring Boot 4.1, Spring Data JPA, Spring Security Crypto, Foreign Function & Memory API (Panama FFM)
   - **Engine:** C++17, SQLite3, nlohmann/json, CMake, vcpkg
+  - **Database:** PostgreSQL 16 (user data), SQLite (dictionary)
   - **Frontend:** Angular 21, RxJS, TypeScript
   - **Tests:** Catch2 (C++), JUnit (Java)
-  - Deploy**:** Docker, docker-compose, nginx 
+  - **Deploy:** Docker, docker-compose, nginx 
 
 ### Project Layout
 ```
@@ -87,23 +90,56 @@ Then place `dictionary.db` in the project root.
 │   ├── src/             
 │   └── tests/          
 ├── studio/            
-│   └── src/main/java/
-└── web/             
-    └── src/app/    
+│   └── src/main/java/com/quickquill/studio/
+│       ├── config/
+│       ├── controller/     # REST endpoints
+│       ├── engine/         # FFM bridge to C++
+│       ├── model/          # JPA entities (User, Session, SearchHistory)
+│       ├── repository/     # Spring Data repos
+│       └── service/        # AuthService, etc.
+├── web/             
+│   └── src/app/    
+├── docker-compose.yml
+├── .env
+└── .gitignore
 ```
 
 ### Configuration
 
-The Spring Boot backend uses `studio/src/main/resources/application.properties`:
+The Spring Boot backend uses `studio/src/main/resources/application.properties`. Sensible defaults are provided for local development, overridable via environment variables:
 
 ```properties
 spring.application.name=studio
 server.port=8080
 quickquill.dictionary-path=../dictionary.db
+
+# PostgreSQL — override with DB_URL, DB_USERNAME, DB_PASSWORD
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/quickquill}
+spring.datasource.username=${DB_USERNAME:quickquill}
+spring.datasource.password=${DB_PASSWORD:quickquill}
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 ```
 
+A `.env` file in the project root is loaded automatically by docker-compose. For local development, create one:
+
 ```bash
-./gradlew bootRun 
+DB_URL=jdbc:postgresql://localhost:5432/quickquill
+DB_USERNAME=quickquill
+DB_PASSWORD=quickquill
+```
+
+**Before running locally**, create the database:
+
+```bash
+createdb quickquill
+```
+
+Then start the backend:
+
+```bash
+cd studio
+./gradlew bootRun
 ```
 
 ### Code Formatting (Pre-commit Hook)
@@ -181,10 +217,19 @@ cmake --build build
 #
 ## API
 
+### Dictionary
+
 - `GET /api/word/<word>` — Dictionary lookup
 - `GET /api/suggest/<word>` — Spelling suggestions
 - `GET /api/synonym/<word>` — Synonym suggestions
 - `GET /api/autofill/<word>` — Autocomplete
+
+### Authentication
+
+- `POST /api/auth/signup?email=&password=&displayName=` — Register
+- `POST /api/auth/login?email=&password=` — Login, returns `{ token, user }`
+- `POST /api/auth/logout?token=` — Logout
+- `GET /api/auth/me?token=` — Current user info
 
 Response shape for `/api/word/<word>`:
 ```json

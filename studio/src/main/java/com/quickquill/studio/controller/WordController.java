@@ -5,10 +5,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * REST controller for dictionary word operations. All word logic is delegated to the C++ engine via
- * FFM.
- */
 @RestController
 @RequestMapping("/api")
 public class WordController {
