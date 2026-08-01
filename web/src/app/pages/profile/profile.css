@@ -13,7 +13,6 @@
   width: 100%;
   max-width: 520px;
   text-align: center;
-  transform: translateY(90px);
 }
 
 .profile-logo {
@@ -71,6 +70,17 @@
   margin-bottom: 8px;
 }
 
+.profile-label-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.profile-label-row .profile-label {
+  margin-bottom: 0;
+}
+
 .profile-value {
   padding: 12px 14px;
   font-family: 'Times New Roman', Times, serif;
@@ -79,6 +89,91 @@
   background: transparent;
   border: 1px solid var(--edge);
   border-radius: 0;
+}
+
+.profile-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 150ms ease;
+}
+
+.profile-edit:hover {
+  opacity: 1;
+}
+
+.profile-edit-quill {
+  width: 28px;
+  height: auto;
+  filter: brightness(0) invert(1);
+  forced-color-adjust: none;
+}
+
+.profile-input {
+  padding: 12px 14px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--edge);
+  border-radius: 0;
+  outline: none;
+}
+
+.profile-input:focus {
+  border-color: var(--ink);
+}
+
+.profile-edit-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.profile-save {
+  padding: 8px 20px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 15px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--edge);
+  cursor: pointer;
+}
+
+.profile-save:hover:not([disabled]) {
+  color: var(--muted);
+}
+
+.profile-save[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.profile-cancel {
+  padding: 8px 20px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 15px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.profile-cancel:hover {
+  color: var(--ink);
+}
+
+.profile-error {
+  color: #b3565a;
+  font-size: 14px;
+  margin: 12px 0 0;
 }
 
 .profile-section {
@@ -126,7 +221,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  transform: translateY(90px);
 }
 
 .profile-actions {

@@ -81,6 +81,26 @@ public class AuthService {
     return sessionRepo.save(session);
   }
 
+  public User updateProfile(String token, String displayName, String email) {
+    User user = validateSession(token);
+
+    userRepo
+        .findByEmail(email)
+        .filter(existing -> !existing.getId().equals(user.getId()))
+        .ifPresent(
+            existing -> {
+              throw new IllegalArgumentException("Email already registered.");
+            });
+
+    user.setDisplayName(displayName);
+    user.setEmail(email);
+    try {
+      return userRepo.save(user);
+    } catch (DataIntegrityViolationException e) {
+      throw new IllegalArgumentException("Email already registered.");
+    }
+  }
+
   public void changePassword(Long userId, String oldPassword, String newPassword) {
     User user =
         userRepo

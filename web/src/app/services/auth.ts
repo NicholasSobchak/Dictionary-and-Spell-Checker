@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, switchMap, tap, catchError, of } from 'rxjs';
+import { Observable, switchMap, tap, catchError, of, throwError } from 'rxjs';
 import { Api } from './api';
 import { AuthUser, AuthResponse } from '../models/auth.models';
 
@@ -53,6 +53,16 @@ export class Auth {
     return this.api.logout(token).pipe(
       catchError(() => of(null)),
       tap(() => this.clearSession()),
+    );
+  }
+
+  updateProfile(displayName: string, email: string): Observable<AuthUser> {
+    const token = this.tokenSignal();
+    if (!token) {
+      return throwError(() => new Error('Not authenticated.'));
+    }
+    return this.api.updateProfile(token, displayName, email).pipe(
+      tap((user) => this.setSession(token, user)),
     );
   }
 

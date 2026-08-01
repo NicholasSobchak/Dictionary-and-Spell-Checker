@@ -1,21 +1,61 @@
 <div class="profile-page">
-  @if (user()) {
+  @if (user(); as user) {
     <div class="profile-card">
     <svg class="profile-logo" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
     </svg>
     <h1 class="profile-title">Profile</h1>
-    <p class="profile-subtitle">{{ user()?.displayName ?? 'Your account' }}</p>
+    <p class="profile-subtitle">{{ user.displayName ?? 'Your account' }}</p>
 
     <div class="profile-fields">
       <div class="profile-field">
-        <span class="profile-label">Display Name</span>
-        <span class="profile-value">{{ user()?.displayName }}</span>
+        <div class="profile-label-row">
+          <span class="profile-label">Name</span>
+          <button type="button" class="profile-edit" (click)="startEdit('name', user.displayName)"
+            aria-label="Edit name" title="Edit name">
+            <img class="profile-edit-quill" src="/assets/quill.png" alt="" />
+          </button>
+        </div>
+        @if (editingField() === 'name') {
+          <input class="profile-input" [value]="fieldValue()"
+            (input)="onInput($any($event.target).value)" />
+          <div class="profile-edit-actions">
+            <button type="button" class="profile-save" (click)="saveEdit()" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : 'Save' }}
+            </button>
+            <button type="button" class="profile-cancel" (click)="cancelEdit()">Cancel</button>
+          </div>
+          @if (error()) {
+            <p class="profile-error">{{ error() }}</p>
+          }
+        } @else {
+          <span class="profile-value">{{ user.displayName }}</span>
+        }
       </div>
       <div class="profile-field">
-        <span class="profile-label">Email</span>
-        <span class="profile-value">{{ user()?.email }}</span>
+        <div class="profile-label-row">
+          <span class="profile-label">Email</span>
+          <button type="button" class="profile-edit" (click)="startEdit('email', user.email)"
+            aria-label="Edit email" title="Edit email">
+            <img class="profile-edit-quill" src="/assets/quill.png" alt="" />
+          </button>
+        </div>
+        @if (editingField() === 'email') {
+          <input class="profile-input" type="email" [value]="fieldValue()"
+            (input)="onInput($any($event.target).value)" />
+          <div class="profile-edit-actions">
+            <button type="button" class="profile-save" (click)="saveEdit()" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : 'Save' }}
+            </button>
+            <button type="button" class="profile-cancel" (click)="cancelEdit()">Cancel</button>
+          </div>
+          @if (error()) {
+            <p class="profile-error">{{ error() }}</p>
+          }
+        } @else {
+          <span class="profile-value">{{ user.email }}</span>
+        }
       </div>
     </div>
 
@@ -25,16 +65,7 @@
     </div>
 
     <button type="button" class="profile-logout">Log Out</button>
-    </div>
-  } @else {
-    <div class="profile-prompt">
-      <img src="/assets/quill.png" alt="quill" class="quill">
-      <h1 class="profile-title">Profile</h1>
-      <p class="profile-subtitle">Create an account or login to get started with QuickQuill.</p>
-      <div class="profile-actions">
-        <a routerLink="/login" class="profile-login">Login</a>
-        <a routerLink="/signup" class="profile-signup">Create an account</a>
-      </div>
-    </div>
-  }
+  </div>
+}
 </div>
+

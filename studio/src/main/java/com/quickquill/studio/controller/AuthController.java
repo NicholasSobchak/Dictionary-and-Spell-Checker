@@ -53,6 +53,18 @@ public class AuthController {
     return ResponseEntity.ok(Map.of("message", "User logged out successfully."));
   }
 
+  @PostMapping("/update")
+  // IllegalArgumentException (email taken) → GlobalExceptionHandler → 409
+  public ResponseEntity<?> update(
+      @RequestParam String token, @RequestParam String displayName, @RequestParam String email) {
+    User user = authService.updateProfile(token, displayName, email);
+    return ResponseEntity.ok(
+        Map.of(
+            "id", user.getId(),
+            "email", user.getEmail(),
+            "displayName", user.getDisplayName()));
+  }
+
   @GetMapping("/me")
   // IllegalArgumentException (invalid/expired token) → GlobalExceptionHandler → 401
   public ResponseEntity<?> me(@RequestParam String token) {

@@ -79,4 +79,12 @@ export class Api {
       params: new HttpParams().set('token', token),
     });
   }
+
+  updateProfile(token: string, displayName: string, email: string): Observable<AuthUser> {
+    const body = new HttpParams()
+      .set('token', token)
+      .set('displayName', displayName)
+      .set('email', email);
+    return this.http.post<AuthUser>('/api/auth/update', body);
+  }
 }

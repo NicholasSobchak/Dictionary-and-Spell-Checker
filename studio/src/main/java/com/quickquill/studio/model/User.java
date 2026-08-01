@@ -60,6 +60,10 @@ public class User {
     this.password = password;
   }
 
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
   public void setDisplayName(String name) {
     this.displayName = name;
   }
