@@ -70,11 +70,11 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "studio/build/libs/*.jar,build/engine/src/libquickquill_engine.so,web/dist/browser"
+          source: "studio/build/libs/*.jar,build/engine/src/libquickquill_engine.so,web/dist/browser,deploy/quickquill-backend.env,deploy/nginx-quickquill-vps.conf"
           target: /var/www/quickquill
           strip_components: 0
 
-      - name: Restart services
+      - name: Configure backend, nginx, and verify auth
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -83,6 +83,89 @@ jobs:
           script: |
             set -e
             cd /var/www/quickquill
+
+            # The two config files may land at the target root or under deploy/
+            # depending on scp behaviour; resolve whichever copy exists.
+            ENV_SRC=/var/www/quickquill/quickquill-backend.env
+            [ -f "$ENV_SRC" ] || ENV_SRC=/var/www/quickquill/deploy/quickquill-backend.env
+            NGINX_SRC=/var/www/quickquill/nginx-quickquill-vps.conf
+            [ -f "$NGINX_SRC" ] || NGINX_SRC=/var/www/quickquill/deploy/nginx-quickquill-vps.conf
+            test -f "$ENV_SRC" && test -f "$NGINX_SRC" || { echo "ERROR: deploy configs missing on VPS"; exit 1; }
+
+            # ---------- 1. Backend DB env vars (systemd drop-in) ----------
+            sudo mkdir -p /etc/systemd/system/quickquill-backend.service.d
+            sudo cp "$ENV_SRC" /etc/systemd/system/quickquill-backend.service.d/env.conf
+            sudo systemctl daemon-reload
+
+            # ---------- 2. Postgres: up, and role/database exist ----------
+            if ! command -v pg_isready >/dev/null 2>&1; then
+              echo "ERROR: postgresql is not installed on the VPS"; exit 1
+            fi
+            pg_isready -h localhost -p 5432 >/dev/null 2>&1 || sudo systemctl start postgresql 2>/dev/null || true
+            for i in $(seq 1 12); do
+              pg_isready -h localhost -p 5432 >/dev/null 2>&1 && break
+              sleep 5
+            done
+            pg_isready -h localhost -p 5432 >/dev/null 2>&1 || { echo "ERROR: postgres not reachable on localhost:5432"; exit 1; }
+            sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='quickquill'" | grep -q 1 \
+              || sudo -u postgres psql -c "CREATE ROLE quickquill LOGIN PASSWORD 'quickquill'"
+            sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='quickquill'" | grep -q 1 \
+              || sudo -u postgres createdb -O quickquill quickquill
+
+            # ---------- 3. nginx: install VPS config, reusing existing root/certs ----------
+            SITE_FILE=$(sudo grep -rl "quickquill.ink" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null | head -n1 || true)
+            [ -n "$SITE_FILE" ] || SITE_FILE=/etc/nginx/sites-available/quickquill-vps.conf
+            sudo mkdir -p "$(dirname "$SITE_FILE")"
+            sudo cp "$SITE_FILE" /tmp/nginx.bak 2>/dev/null || true
+
+            ROOT=$(sudo grep -m1 -E '^\s*root ' /tmp/nginx.bak 2>/dev/null | awk '{print $2}' | tr -d ';' || true)
+            CERT=$(sudo grep -m1 'ssl_certificate ' /tmp/nginx.bak 2>/dev/null | awk '{print $2}' | tr -d ';' || true)
+            CERT_KEY=$(sudo grep -m1 'ssl_certificate_key ' /tmp/nginx.bak 2>/dev/null | awk '{print $2}' | tr -d ';' || true)
+            [ -n "$ROOT" ] || ROOT=/var/www/quickquill/browser
+            [ -n "$CERT" ] || CERT=/etc/letsencrypt/live/quickquill.ink/fullchain.pem
+            [ -n "$CERT_KEY" ] || CERT_KEY=/etc/letsencrypt/live/quickquill.ink/privkey.pem
+
+            sudo cp "$NGINX_SRC" "$SITE_FILE"
+            sudo sed -i "s|@ROOT@|$ROOT|g" "$SITE_FILE"
+            sudo sed -i "s|@SSL_CERT@|$CERT|g" "$SITE_FILE"
+            sudo sed -i "s|@SSL_CERT_KEY@|$CERT_KEY|g" "$SITE_FILE"
+
+            case "$SITE_FILE" in
+              /etc/nginx/sites-available/*)
+                sudo ln -sf "$SITE_FILE" /etc/nginx/sites-enabled/$(basename "$SITE_FILE") ;;
+            esac
+
+            rollback() {
+              if [ -f /tmp/nginx.bak ]; then
+                sudo cp /tmp/nginx.bak "$SITE_FILE"
+                sudo nginx -t && sudo systemctl reload nginx
+              fi
+              exit 1
+            }
+
+            sudo nginx -t || rollback
+            sudo systemctl reload nginx
+
+            # Health check the SPA through nginx before touching the backend
+            curl -fsS -o /dev/null --resolve quickquill.ink:443:127.0.0.1 https://quickquill.ink/ \
+              || { echo "ERROR: SPA not served after nginx update"; rollback; }
+
+            # ---------- 4. Restart backend and wait for the auth endpoints ----------
             sudo systemctl restart quickquill-backend
-            sudo systemctl restart nginx
-            echo "Deploy complete"
+            AUTH_CODE=""
+            for i in $(seq 1 36); do
+              AUTH_CODE=$(curl -s -o /tmp/auth.json -w "%{http_code}" -X POST \
+                http://127.0.0.1:8080/api/auth/login \
+                -d "email=probe@quickquill.ink" -d "password=probe" 2>/dev/null || true)
+              [ "$AUTH_CODE" = "401" ] && break
+              sleep 5
+            done
+            [ "$AUTH_CODE" = "401" ] || { echo "ERROR: backend not serving /api/auth (got $AUTH_CODE):"; cat /tmp/auth.json; exit 1; }
+
+            # ---------- 5. End-to-end through nginx (localhost to avoid hairpin NAT) ----------
+            PUB=$(curl -s -o /tmp/pub.json -w "%{http_code}" -X POST \
+              --resolve quickquill.ink:443:127.0.0.1 https://quickquill.ink/api/auth/login \
+              -d "email=probe@quickquill.ink" -d "password=probe" || true)
+            [ "$PUB" = "401" ] || { echo "ERROR: /api/auth not reachable via nginx (got $PUB):"; cat /tmp/pub.json; exit 1; }
+
+            echo "Deploy complete: auth endpoints live"
