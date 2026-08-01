@@ -1,15 +1,9 @@
-import { Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { Auth } from '../../services/auth';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-notepad',
-  imports: [RouterLink],
   templateUrl: './notepad.html',
   styleUrl: './notepad.css',
 })
-export class Notepad {
-  private auth = inject(Auth);
+export class Notepad {}
 
-  user = this.auth.user;
-}
