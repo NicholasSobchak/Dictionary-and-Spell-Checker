@@ -33,7 +33,6 @@ set_target_properties(quickquill_http PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # --- Shared Library for FFM ---
 # This builds libquickquill_engine.so — a C ABI wrapper around the C++ engine
 # that Java can call via the Foreign Function and Memory API (Panama FFM).
-find_package(JNI REQUIRED)
 
 add_library(quickquill_engine SHARED
     ../native/quickquill.cpp
@@ -43,7 +42,6 @@ target_include_directories(quickquill_engine PRIVATE
     ../native
     ../include
     ../utils
-    ${JNI_INCLUDE_DIRS}
 )
 
 target_link_libraries(quickquill_engine PRIVATE
