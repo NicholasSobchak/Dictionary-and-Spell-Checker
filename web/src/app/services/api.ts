@@ -12,6 +12,20 @@ import {
   AuthResponse,
 } from '../models/auth.models';
 
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  const status = (err as { status?: number })?.status;
+  if (status === 404) {
+    return 'This feature is not available right now. Please try again later.';
+  }
+  if (status === 409) {
+    return 'An account with this email already exists.';
+  }
+  if (status === 401) {
+    return 'Invalid email or password.';
+  }
+  return (err as { error?: { error?: string } })?.error?.error ?? fallback;
+}
+
 @Injectable({
   providedIn: 'root',
 })

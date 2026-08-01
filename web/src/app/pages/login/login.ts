@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { Auth } from '../../services/auth';
+import { apiErrorMessage } from '../../services/api';
 
 @Component({
   selector: 'app-login',
@@ -37,7 +38,7 @@ export class Login {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err?.error?.error ?? 'Login failed. Please check your credentials.';
+        this.errorMessage = apiErrorMessage(err, 'Login failed. Please check your credentials.');
       },
     });
   }

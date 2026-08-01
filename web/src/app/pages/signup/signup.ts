@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { Auth } from '../../services/auth';
+import { apiErrorMessage } from '../../services/api';
 
 @Component({
   selector: 'app-signup',
@@ -48,7 +49,7 @@ export class Signup {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err?.error?.error ?? 'Signup failed. Please try again.';
+        this.errorMessage = apiErrorMessage(err, 'Signup failed. Please try again.');
       },
     });
   }
