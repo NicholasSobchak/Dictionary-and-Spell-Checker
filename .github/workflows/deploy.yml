@@ -171,9 +171,16 @@ jobs:
 
             OLD_EXEC=$(sudo systemctl cat quickquill-backend 2>/dev/null | grep -m1 '^ExecStart=' | sed 's/^ExecStart=//' || true)
             DICT=$(echo "$OLD_EXEC" | grep -oE '/[^ ]*dictionary\.db' | head -n1 || true)
-            [ -n "$DICT" ] && [ -f "$DICT" ] || DICT=$(find /var/www/quickquill /var/www /srv -maxdepth 4 -name 'dictionary.db' 2>/dev/null | head -n1 || true)
+            [ -n "$DICT" ] && [ -f "$DICT" ] || DICT=$(find /var/www/quickquill /var/www /srv /opt /home /root -maxdepth 4 -name 'dictionary.db' 2>/dev/null | head -n1 || true)
             [ -n "$DICT" ] || { echo "ERROR: dictionary.db not found on the VPS"; exit 1; }
             echo "Dictionary: $DICT"
+
+            # Stop any legacy Docker backend container or docker-compose services occupying port 8080
+            echo "Stopping legacy Docker backend containers and processes on port 8080..."
+            sudo docker stop quickquill-dictionary-spellchecker-backend-1 2>/dev/null || true
+            sudo docker stop $(sudo docker ps -q --filter "name=backend") 2>/dev/null || true
+            sudo docker compose -f /var/www/quickquill/docker-compose.yml down 2>/dev/null || true
+            sudo fuser -k 8080/tcp 2>/dev/null || true
 
             sudo cp /etc/systemd/system/quickquill-backend.service /tmp/backend.bak 2>/dev/null || true
 
@@ -188,7 +195,7 @@ jobs:
             Environment=DB_URL=jdbc:postgresql://localhost:5432/quickquill
             Environment=DB_USERNAME=quickquill
             Environment=DB_PASSWORD=quickquill
-            ExecStart=/usr/bin/java -Djava.library.path=$LIBPATH -jar $JAR --quickquill.dictionary-path=$DICT
+            ExecStart=/usr/bin/java --enable-native-access=ALL-UNNAMED -Djava.library.path=$LIBPATH -jar $JAR --quickquill.dictionary-path=$DICT
             Restart=always
             RestartSec=3
 
@@ -202,6 +209,9 @@ jobs:
 
             backend_fail() {
               echo "ERROR: $1"
+              echo "=== Systemd Backend Status & Logs ==="
+              sudo systemctl status quickquill-backend --no-pager -l || true
+              sudo journalctl -u quickquill-backend -n 100 --no-pager || true
               if [ -f /tmp/backend.bak ]; then
                 echo "Restoring previous backend service"
                 sudo cp /tmp/backend.bak /etc/systemd/system/quickquill-backend.service

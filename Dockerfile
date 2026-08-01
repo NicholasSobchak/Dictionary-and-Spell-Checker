@@ -42,4 +42,4 @@ COPY --from=engine /src/build/engine/src/libquickquill_engine.so ./libquickquill
 COPY --from=frontend /web/dist/browser ./web/dist/browser
 
 EXPOSE 8080
-CMD ["java", "-Djava.library.path=.", "-jar", "app.jar", "--quickquill.dictionary-path=/app/dictionary.db"]
+CMD ["java", "--enable-native-access=ALL-UNNAMED", "-Djava.library.path=.", "-jar", "app.jar", "--quickquill.dictionary-path=/app/dictionary.db"]

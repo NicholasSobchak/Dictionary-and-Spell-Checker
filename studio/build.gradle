@@ -36,8 +36,11 @@ spotless {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	systemProperty 'java.library.path', '../build/engine/src'
+	jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 bootRun {
 	systemProperty 'java.library.path', '../build/engine/src'
+	jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
