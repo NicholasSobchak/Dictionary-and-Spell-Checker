@@ -153,30 +153,22 @@ jobs:
             curl -fsS -o /dev/null --resolve quickquill.ink:443:127.0.0.1 https://quickquill.ink/ \
               || { echo "ERROR: SPA not served after nginx update"; rollback; }
 
-            # ---------- 3. Backend: run the Spring Boot JAR we shipped ----------
-            echo "=== current backend unit ==="
-            sudo systemctl cat quickquill-backend 2>/dev/null || echo "(no quickquill-backend unit)"
-            echo "=== listener on 8080 ==="
-            sudo ss -ltnp 2>/dev/null | grep ':8080' || echo "(nothing listening on 8080)"
-
+            # ---------- 3. Backend: run the Spring Boot JAR ----------
             JAR=$(ls /var/www/quickquill/*.jar 2>/dev/null | head -n1 || true)
             [ -n "$JAR" ] || JAR=$(find /var/www/quickquill -maxdepth 4 -name '*.jar' 2>/dev/null | head -n1 || true)
-            [ -n "$JAR" ] || { echo "ERROR: backend JAR not found on the VPS"; exit 1; }
-            echo "Shipping JAR: $JAR"
+            [ -n "$JAR" ] || { echo "ERROR: backend JAR not found on VPS"; exit 1; }
 
             SO=/var/www/quickquill/libquickquill_engine.so
             [ -f "$SO" ] || SO=$(find /var/www/quickquill -maxdepth 4 -name 'libquickquill_engine.so' 2>/dev/null | head -n1 || true)
-            [ -n "$SO" ] || { echo "ERROR: libquickquill_engine.so not found on the VPS"; exit 1; }
+            [ -n "$SO" ] || { echo "ERROR: libquickquill_engine.so not found on VPS"; exit 1; }
             LIBPATH=$(dirname "$SO")
 
             OLD_EXEC=$(sudo systemctl cat quickquill-backend 2>/dev/null | grep -m1 '^ExecStart=' | sed 's/^ExecStart=//' || true)
             DICT=$(echo "$OLD_EXEC" | grep -oE '/[^ ]*dictionary\.db' | head -n1 || true)
             [ -n "$DICT" ] && [ -f "$DICT" ] || DICT=$(find /var/www/quickquill /var/www /srv /opt /home /root -maxdepth 4 -name 'dictionary.db' 2>/dev/null | head -n1 || true)
-            [ -n "$DICT" ] || { echo "ERROR: dictionary.db not found on the VPS"; exit 1; }
-            echo "Dictionary: $DICT"
+            [ -n "$DICT" ] || { echo "ERROR: dictionary.db not found on VPS"; exit 1; }
 
-            # Stop any legacy Docker backend container or docker-compose services occupying port 8080
-            echo "Stopping legacy Docker backend containers and processes on port 8080..."
+            # Stop legacy Docker backend containers or processes occupying port 8080
             sudo docker stop quickquill-dictionary-spellchecker-backend-1 2>/dev/null || true
             sudo docker stop $(sudo docker ps -q --filter "name=backend") 2>/dev/null || true
             sudo docker compose -f /var/www/quickquill/docker-compose.yml down 2>/dev/null || true
@@ -227,7 +219,7 @@ jobs:
               [ "$WORD_CODE" = "200" ] && break
               sleep 5
             done
-            [ "$WORD_CODE" = "200" ] || backend_fail "dictionary/engine failed after JAR swap (word lookup got $WORD_CODE): $(cat /tmp/word.json)"
+            [ "$WORD_CODE" = "200" ] || backend_fail "dictionary/engine failed after JAR swap (word lookup got $WORD_CODE): $(cat /tmp/word.json 2>/dev/null || true)"
 
             AUTH_CODE=""
             for i in $(seq 1 12); do
@@ -237,7 +229,7 @@ jobs:
               [ "$AUTH_CODE" = "401" ] && break
               sleep 5
             done
-            [ "$AUTH_CODE" = "401" ] || backend_fail "auth endpoint missing after JAR swap (got $AUTH_CODE): $(cat /tmp/auth.json)"
+            [ "$AUTH_CODE" = "401" ] || backend_fail "auth endpoint missing after JAR swap (got $AUTH_CODE): $(cat /tmp/auth.json 2>/dev/null || true)"
 
             # ---------- 4. End-to-end through nginx (localhost to avoid hairpin NAT) ----------
             PUB=$(curl -s -o /tmp/pub.json -w "%{http_code}" -X POST \
