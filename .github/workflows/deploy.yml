@@ -92,7 +92,25 @@ jobs:
             [ -f "$NGINX_SRC" ] || NGINX_SRC=/var/www/quickquill/deploy/nginx-quickquill-vps.conf
             test -f "$NGINX_SRC" || { echo "ERROR: deploy config missing on VPS"; exit 1; }
 
-            # ---------- 1. Postgres: install if missing, ensure it is up, ensure role/db exist ----------
+            # ---------- 1. Java 22: find or install Java binary on VPS ----------
+            JAVA_BIN=$(command -v java || true)
+            [ -n "$JAVA_BIN" ] && [ -x "$JAVA_BIN" ] || JAVA_BIN=$(find /usr/lib/jvm /opt /usr/local /home -name java 2>/dev/null | head -n1 || true)
+            if [ -z "$JAVA_BIN" ] || ! "$JAVA_BIN" -version 2>&1 | grep -qE '2[2-9]'; then
+              echo "Installing Java 22 JRE on VPS..."
+              sudo apt-get update
+              sudo apt-get install -y wget gnupg software-properties-common lsb-release 2>/dev/null || true
+              sudo mkdir -p /etc/apt/keyrings
+              wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | sudo tee /etc/apt/keyrings/adoptium.asc >/dev/null 2>&1 || true
+              CODENAME=$(lsb_release -cs 2>/dev/null || echo bookworm)
+              echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $CODENAME main" | sudo tee /etc/apt/sources.list.d/adoptium.list >/dev/null 2>&1 || true
+              sudo apt-get update
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y temurin-22-jre || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-21-jre default-jre || true
+              JAVA_BIN=$(command -v java || find /usr/lib/jvm -name java 2>/dev/null | head -n1 || true)
+            fi
+            [ -n "$JAVA_BIN" ] && [ -x "$JAVA_BIN" ] || { echo "ERROR: Java executable not found on VPS"; exit 1; }
+            echo "Using Java binary: $JAVA_BIN"
+
+            # ---------- 2. Postgres: install if missing, ensure it is up, ensure role/db exist ----------
             if ! command -v pg_isready >/dev/null 2>&1; then
               echo "Installing PostgreSQL..."
               sudo apt-get update
@@ -109,7 +127,7 @@ jobs:
             sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='quickquill'" | grep -q 1 \
               || sudo -u postgres createdb -O quickquill quickquill
 
-            # ---------- 2. nginx: install managed config, disable any old sites ----------
+            # ---------- 3. nginx: install managed config, disable any old sites ----------
             SITE_FILE=/etc/nginx/sites-available/quickquill-vps.conf
             # grep -R follows symlinks so sites-enabled entries are found.
             ACTIVE=$(sudo grep -Rl "quickquill.ink" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null | head -n1 || true)
@@ -187,7 +205,7 @@ jobs:
             Environment=DB_URL=jdbc:postgresql://localhost:5432/quickquill
             Environment=DB_USERNAME=quickquill
             Environment=DB_PASSWORD=quickquill
-            ExecStart=/usr/bin/java --enable-native-access=ALL-UNNAMED -Djava.library.path=$LIBPATH -jar $JAR --quickquill.dictionary-path=$DICT
+            ExecStart=$JAVA_BIN --enable-native-access=ALL-UNNAMED -Djava.library.path=$LIBPATH -jar $JAR --quickquill.dictionary-path=$DICT
             Restart=always
             RestartSec=3
 
