@@ -1,7 +1,6 @@
 package com.quickquill.studio.config;
 
 import java.util.Map;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,8 +16,10 @@ public class GlobalExceptionHandler {
     if (msg != null) {
       if (msg.contains("registered")) {
         status = HttpStatus.CONFLICT;
-      } else if (msg.contains("password") || msg.contains("session") ||
-                 msg.contains("login") || msg.contains("token")) {
+      } else if (msg.contains("password")
+          || msg.contains("session")
+          || msg.contains("login")
+          || msg.contains("token")) {
         status = HttpStatus.UNAUTHORIZED;
       }
     }

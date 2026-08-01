@@ -1,16 +1,14 @@
 package com.quickquill.studio.service;
 
-import java.time.Duration;
-import java.time.Instant;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.quickquill.studio.model.Session;
 import com.quickquill.studio.model.User;
 import com.quickquill.studio.repository.SessionRepository;
 import com.quickquill.studio.repository.UserRepository;
+import java.time.Duration;
+import java.time.Instant;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
@@ -38,8 +36,10 @@ public class AuthService {
   }
 
   public Session login(String email, String password) {
-    User user = userRepo.findByEmail(email)
-      .orElseThrow(() -> new IllegalArgumentException("Invalid email or password."));
+    User user =
+        userRepo
+            .findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid email or password."));
 
     if (!passwordEncoder.matches(password, user.getPassword())) {
       throw new IllegalArgumentException("Invalid email or password.");
@@ -53,8 +53,10 @@ public class AuthService {
   }
 
   public User validateSession(String token) {
-    Session session = sessionRepo.findByToken(token)
-      .orElseThrow(() -> new IllegalArgumentException("Invalid session."));
+    Session session =
+        sessionRepo
+            .findByToken(token)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid session."));
 
     if (session.isExpired()) {
       sessionRepo.delete(session);
@@ -65,8 +67,10 @@ public class AuthService {
   }
 
   public Session refreshSession(String token) {
-    Session session = sessionRepo.findByToken(token)
-      .orElseThrow(() -> new IllegalArgumentException("Invalid session."));
+    Session session =
+        sessionRepo
+            .findByToken(token)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid session."));
 
     if (session.isExpired()) {
       sessionRepo.delete(session);
@@ -78,8 +82,10 @@ public class AuthService {
   }
 
   public void changePassword(Long userId, String oldPassword, String newPassword) {
-    User user = userRepo.findById(userId)
-      .orElseThrow(() -> new IllegalArgumentException("User not found."));
+    User user =
+        userRepo
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
     if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
       throw new IllegalArgumentException("Wrong password.");
