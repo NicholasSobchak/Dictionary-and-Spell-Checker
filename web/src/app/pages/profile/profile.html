@@ -1,3 +1,40 @@
 <div class="profile-page">
-  <p class="placeholder-message">Coming Soon</p>
+  @if (user()) {
+    <div class="profile-card">
+    <svg class="profile-logo" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+    </svg>
+    <h1 class="profile-title">Profile</h1>
+    <p class="profile-subtitle">{{ user()?.displayName ?? 'Your account' }}</p>
+
+    <div class="profile-fields">
+      <div class="profile-field">
+        <span class="profile-label">Display Name</span>
+        <span class="profile-value">{{ user()?.displayName }}</span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-label">Email</span>
+        <span class="profile-value">{{ user()?.email }}</span>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h2 class="profile-section-title">Notepad Files</h2>
+      <p class="profile-empty">No files yet.</p>
+    </div>
+
+    <button type="button" class="profile-logout">Log Out</button>
+    </div>
+  } @else {
+    <div class="profile-prompt">
+      <img src="/assets/quill.png" alt="quill" class="quill">
+      <h1 class="profile-title">Profile</h1>
+      <p class="profile-subtitle">Create an account or login to get started with QuickQuill.</p>
+      <div class="profile-actions">
+        <a routerLink="/login" class="profile-login">Login</a>
+        <a routerLink="/signup" class="profile-signup">Create an account</a>
+      </div>
+    </div>
+  }
 </div>

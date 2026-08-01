@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpResponse, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   WordResponse,
@@ -7,6 +7,10 @@ import {
   WordError,
   AutofillResponse,
 } from '../models/word.models';
+import {
+  AuthUser,
+  AuthResponse,
+} from '../models/auth.models';
 
 @Injectable({
   providedIn: 'root',
@@ -48,5 +52,31 @@ export class Api {
 
   private encodePath(value: string): string {
     return encodeURIComponent(value).replace(/%20/g, '+');
+  }
+
+  signup(email: string, password: string, displayName: string): Observable<AuthUser> {
+    const body = new HttpParams()
+      .set('email', email)
+      .set('password', password)
+      .set('displayName', displayName);
+    return this.http.post<AuthUser>('/api/auth/signup', body);
+  }
+
+  login(email: string, password: string): Observable<AuthResponse> {
+    const body = new HttpParams().set('email', email).set('password', password);
+    return this.http.post<AuthResponse>('/api/auth/login', body);
+  }
+
+  logout(token: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      '/api/auth/logout',
+      new HttpParams().set('token', token)
+    );
+  }
+
+  me(token: string): Observable<AuthUser> {
+    return this.http.get<AuthUser>('/api/auth/me', {
+      params: new HttpParams().set('token', token),
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
+import { Auth } from '../../services/auth';
 
 @Component({
   selector: 'app-notepad',
@@ -8,5 +9,7 @@ import { Router, RouterLink } from '@angular/router';
   styleUrl: './notepad.css',
 })
 export class Notepad {
-  private router = inject(Router); 
+  private auth = inject(Auth);
+
+  user = this.auth.user;
 }

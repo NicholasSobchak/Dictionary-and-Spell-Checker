@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Auth } from '../../services/auth';
 
 @Component({
   selector: 'app-header',
@@ -8,5 +9,15 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   styleUrl: './header.css',
 })
 export class Header {
+  auth = inject(Auth);
+  private router = inject(Router);
+
   drawerOpen = false;
+
+  logout() {
+    this.auth.logout().subscribe(() => {
+      this.drawerOpen = false;
+      this.router.navigate(['/login']);
+    });
+  }
 }

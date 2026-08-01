@@ -6,14 +6,15 @@ import { Notepad } from './pages/notepad/notepad';
 import { Login } from './pages/login/login';
 import { Signup } from './pages/signup/signup';
 import { Profile } from './pages/profile/profile';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: Dictionary },
   { path: 'search-history', component: SearchHistory },
   { path: 'suggestions', component: Suggestions },
-  { path: 'notepad', component: Notepad },
+  { path: 'notepad', component: Notepad, canActivate: [authGuard] },
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },
-  { path: 'profile', component: Profile },
+  { path: 'profile', component: Profile, canActivate: [authGuard] },
   { path: '**', redirectTo: '' },
 ];

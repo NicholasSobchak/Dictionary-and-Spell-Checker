@@ -1,10 +1,15 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
+import { Auth } from '../../services/auth';
 
 @Component({
   selector: 'app-profile',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })
-export class Profile { }
+export class Profile {
+  private auth = inject(Auth);
+
+  user = this.auth.user;
+}

@@ -1,11 +1,15 @@
 <div class="notepad-page">
-  <div class="promt-account">
-    <img src="/assets/quill.png" alt="quill" class="quill">
-    <h1 class="notepad-title">Notepad</h1>
-    <p class="notepad-subtitle">Create an account to start writing.</p>
-    <div class="notepad-actions">
-      <a routerLink="/login" class="notepad-login">Login</a>
-      <a routerLink="/signup" class="nodepad-signup">Create an account</a>
+  @if (user()) {
+    <h1 class="notepad-title">Notepad: Coming Soon</h1>
+  } @else {
+    <div class="promt-account">
+      <img src="/assets/quill.png" alt="quill" class="quill">
+      <h1 class="notepad-title">Notepad</h1>
+      <p class="notepad-subtitle">Create an account to start writing.</p>
+      <div class="notepad-actions">
+        <a routerLink="/login" class="notepad-login">Login</a>
+        <a routerLink="/signup" class="nodepad-signup">Create an account</a>
+      </div>
     </div>
-  </div>
+  }
 </div>
