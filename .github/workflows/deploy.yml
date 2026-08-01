@@ -80,6 +80,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 30s
+          command_timeout: 30m
           script: |
             set -e
             cd /var/www/quickquill
@@ -97,9 +99,11 @@ jobs:
             sudo cp "$ENV_SRC" /etc/systemd/system/quickquill-backend.service.d/env.conf
             sudo systemctl daemon-reload
 
-            # ---------- 2. Postgres: up, and role/database exist ----------
+            # ---------- 2. Postgres: install if missing, ensure it is up, ensure role/db exist ----------
             if ! command -v pg_isready >/dev/null 2>&1; then
-              echo "ERROR: postgresql is not installed on the VPS"; exit 1
+              echo "Installing PostgreSQL..."
+              sudo apt-get update
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql
             fi
             pg_isready -h localhost -p 5432 >/dev/null 2>&1 || sudo systemctl start postgresql 2>/dev/null || true
             for i in $(seq 1 12); do
