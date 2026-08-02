@@ -47,3 +47,9 @@ bootRun {
 	systemProperty 'java.library.path', '../build/engine/src'
 	jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
+
+// Only the bootable JAR is deployed; skip the plain JAR so artifact
+// globs never match more than one file.
+tasks.named('jar') {
+	enabled = false
+}

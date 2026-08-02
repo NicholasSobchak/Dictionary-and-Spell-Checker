@@ -50,7 +50,9 @@ jobs:
         run: |
           mkdir -p release/browser
           cp artifacts/build/engine/src/libquickquill_engine.so release/libquickquill_engine.so
-          cp artifacts/studio/build/libs/*.jar release/quickquill-backend.jar
+          BOOT_JAR=$(ls artifacts/studio/build/libs/*.jar 2>/dev/null | grep -v -- '-plain.jar' | head -n1 || true)
+          test -n "$BOOT_JAR" || { echo "ERROR: boot JAR not found in artifacts"; exit 1; }
+          cp "$BOOT_JAR" release/quickquill-backend.jar
           cp -r artifacts/web/dist/browser/. release/browser/
           cp deploy/nginx-quickquill-vps.conf release/
           cp deploy/quickquill-backend.env release/
