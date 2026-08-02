@@ -1,0 +1,137 @@
+name: Build artifacts
+
+on:
+  workflow_call:
+    inputs:
+      run-cpp-tests:
+        description: Build and run the C++ test suite
+        type: boolean
+        default: false
+      cpp-format-check:
+        description: Run the clang-format check
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-engine:
+    name: Build C++ engine
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install C++ build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build build-essential clang-format-17
+
+      - name: Check C++ formatting
+        if: ${{ inputs.cpp-format-check }}
+        run: find engine/src engine/include engine/tests engine/utils -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-format-17 --dry-run --Werror {} +
+
+      - name: Cache vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-
+
+      - name: Cache vcpkg tool
+        uses: actions/cache@v4
+        with:
+          path: vcpkg
+          key: vcpkg-tool-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-tool-
+
+      - name: Bootstrap vcpkg
+        run: |
+          if [ ! -f vcpkg/vcpkg ]; then
+            git clone https://github.com/microsoft/vcpkg.git
+            git -C vcpkg checkout 2025.04.09
+            ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          fi
+
+      - name: Configure CMake
+        run: cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux
+
+      - name: Build C++ engine
+        run: cmake --build build --target quickquill_engine
+
+      - name: Build C++ tests
+        if: ${{ inputs.run-cpp-tests }}
+        run: cmake --build build --target runTests
+
+      - name: Run C++ tests
+        if: ${{ inputs.run-cpp-tests }}
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Upload engine artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine
+          path: build/engine/src/libquickquill_engine.so
+          if-no-files-found: error
+
+  build-backend:
+    name: Build Spring Boot backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java 22
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '22'
+
+      - name: Build backend JAR
+        run: ./gradlew bootJar
+        working-directory: studio/
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend
+          path: studio/build/libs/*.jar
+          if-no-files-found: error
+
+  build-frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      - name: Verify frontend output
+        run: |
+          test -f web/dist/browser/index.html || { echo "ERROR: index.html not found"; exit 1; }
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: web/dist/browser
+          if-no-files-found: error

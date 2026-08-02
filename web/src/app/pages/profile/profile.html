@@ -6,7 +6,7 @@
       <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
     </svg>
     <h1 class="profile-title">Profile</h1>
-    <p class="profile-subtitle">{{ user.displayName ?? 'Your account' }}</p>
+    <p class="profile-subtitle">{{ user.displayName || 'Your account' }}</p>
 
     <div class="profile-fields">
       <div class="profile-field">

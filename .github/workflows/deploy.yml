@@ -3,78 +3,73 @@ name: Deploy to Production
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
+  build:
+    uses: ./.github/workflows/build-artifacts.yml
+    with:
+      run-cpp-tests: false
+
   deploy:
+    name: Deploy to VPS
     runs-on: ubuntu-latest
+    needs: build
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
+          submodules: recursive
 
-      # Build C++ engine .so
-      - name: Install C++ Build Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build build-essential
-
-      - name: Bootstrap Vcpkg
-        run: |
-          if [ ! -f vcpkg/vcpkg ]; then
-            git clone --depth=1 https://github.com/microsoft/vcpkg.git
-            ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
-          fi
-
-      - name: Configure & Build C++ Engine
-        run: |
-          cmake -B build -S . -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
-            -DVCPKG_TARGET_TRIPLET=x64-linux
-          cmake --build build --target quickquill_engine
-
-      # Build Spring Boot JAR
-      - name: Setup Java 22
-        uses: actions/setup-java@v4
+      - name: Download engine artifact
+        uses: actions/download-artifact@v4
         with:
-          distribution: 'temurin'
-          java-version: '22'
+          name: engine
+          path: artifacts
 
-      - name: Build Spring Boot JAR
-        run: ./gradlew bootJar
-        working-directory: studio/
-
-      # Build Frontend
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
+          name: backend
+          path: artifacts
 
-      - name: Build Frontend
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: artifacts
+
+      - name: Stage release tarball
         run: |
-          cd web
-          npm ci
-          npm run build
+          mkdir -p release/browser
+          cp artifacts/build/engine/src/libquickquill_engine.so release/libquickquill_engine.so
+          cp artifacts/studio/build/libs/*.jar release/quickquill-backend.jar
+          cp -r artifacts/web/dist/browser/. release/browser/
+          cp deploy/nginx-quickquill-vps.conf release/
+          cp deploy/quickquill-backend.env release/
+          test -f release/quickquill-backend.jar || { echo "ERROR: JAR missing"; exit 1; }
+          test -f release/libquickquill_engine.so || { echo "ERROR: .so missing"; exit 1; }
+          test -f release/browser/index.html || { echo "ERROR: index.html missing"; exit 1; }
+          tar -czf release.tar.gz -C release .
 
-      - name: Verify build output
-        run: |
-          ls -la web/dist/browser/
-          test -f web/dist/browser/index.html || { echo "ERROR: index.html not found"; exit 1; }
-
-      # Deploy to VPS
-      - name: Deploy to VPS
+      - name: Upload release and deploy script to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "studio/build/libs/*.jar,build/engine/src/libquickquill_engine.so,web/dist/browser,deploy/quickquill-backend.env,deploy/nginx-quickquill-vps.conf"
+          source: "release.tar.gz,scripts/deploy_prod.sh"
           target: /var/www/quickquill
           strip_components: 0
 
-      - name: Configure backend, nginx, and verify auth
+      - name: Run production deploy script
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -84,175 +79,4 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
-            cd /var/www/quickquill
-
-            # The config file may land at the target root or under deploy/
-            # depending on scp behaviour; resolve whichever copy exists.
-            NGINX_SRC=/var/www/quickquill/nginx-quickquill-vps.conf
-            [ -f "$NGINX_SRC" ] || NGINX_SRC=/var/www/quickquill/deploy/nginx-quickquill-vps.conf
-            test -f "$NGINX_SRC" || { echo "ERROR: deploy config missing on VPS"; exit 1; }
-
-            # ---------- 1. Java 22: find or install Java binary on VPS ----------
-            JAVA_BIN=$(command -v java || true)
-            [ -n "$JAVA_BIN" ] && [ -x "$JAVA_BIN" ] || JAVA_BIN=$(find /usr/lib/jvm /opt /usr/local /home -name java 2>/dev/null | head -n1 || true)
-            if [ -z "$JAVA_BIN" ] || ! "$JAVA_BIN" -version 2>&1 | grep -qE '2[2-9]'; then
-              echo "Installing Java 22 JRE on VPS..."
-              sudo apt-get update
-              sudo apt-get install -y wget gnupg software-properties-common lsb-release 2>/dev/null || true
-              sudo mkdir -p /etc/apt/keyrings
-              wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | sudo tee /etc/apt/keyrings/adoptium.asc >/dev/null 2>&1 || true
-              CODENAME=$(lsb_release -cs 2>/dev/null || echo bookworm)
-              echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $CODENAME main" | sudo tee /etc/apt/sources.list.d/adoptium.list >/dev/null 2>&1 || true
-              sudo apt-get update
-              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y temurin-22-jre || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-21-jre default-jre || true
-              JAVA_BIN=$(command -v java || find /usr/lib/jvm -name java 2>/dev/null | head -n1 || true)
-            fi
-            [ -n "$JAVA_BIN" ] && [ -x "$JAVA_BIN" ] || { echo "ERROR: Java executable not found on VPS"; exit 1; }
-            echo "Using Java binary: $JAVA_BIN"
-
-            # ---------- 2. Postgres: install if missing, ensure it is up, ensure role/db exist ----------
-            if ! command -v pg_isready >/dev/null 2>&1; then
-              echo "Installing PostgreSQL..."
-              sudo apt-get update
-              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql
-            fi
-            pg_isready -h localhost -p 5432 >/dev/null 2>&1 || sudo systemctl start postgresql 2>/dev/null || true
-            for i in $(seq 1 12); do
-              pg_isready -h localhost -p 5432 >/dev/null 2>&1 && break
-              sleep 5
-            done
-            pg_isready -h localhost -p 5432 >/dev/null 2>&1 || { echo "ERROR: postgres not reachable on localhost:5432"; exit 1; }
-            sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='quickquill'" | grep -q 1 \
-              || sudo -u postgres psql -c "CREATE ROLE quickquill LOGIN PASSWORD 'quickquill'"
-            sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='quickquill'" | grep -q 1 \
-              || sudo -u postgres createdb -O quickquill quickquill
-
-            # ---------- 3. nginx: install managed config, disable any old sites ----------
-            SITE_FILE=/etc/nginx/sites-available/quickquill-vps.conf
-            # grep -R follows symlinks so sites-enabled entries are found.
-            ACTIVE=$(sudo grep -Rl "quickquill.ink" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null | head -n1 || true)
-            [ -n "$ACTIVE" ] && sudo cp "$ACTIVE" /tmp/nginx.bak 2>/dev/null || true
-
-            ROOT=$(sudo grep -m1 -E '^\s*root ' /tmp/nginx.bak 2>/dev/null | awk '{print $2}' | tr -d ';' || true)
-            CERT=$(sudo grep -m1 'ssl_certificate ' /tmp/nginx.bak 2>/dev/null | awk '{print $2}' | tr -d ';' || true)
-            CERT_KEY=$(sudo grep -m1 'ssl_certificate_key ' /tmp/nginx.bak 2>/dev/null | awk '{print $2}' | tr -d ';' || true)
-            [ -n "$ROOT" ] || ROOT=/var/www/quickquill/browser
-            [ -n "$CERT" ] || CERT=/etc/letsencrypt/live/quickquill.ink/fullchain.pem
-            [ -n "$CERT_KEY" ] || CERT_KEY=/etc/letsencrypt/live/quickquill.ink/privkey.pem
-
-            sudo mkdir -p /etc/nginx/sites-available
-            sudo cp "$NGINX_SRC" "$SITE_FILE"
-            sudo sed -i "s|@ROOT@|$ROOT|g" "$SITE_FILE"
-            sudo sed -i "s|@SSL_CERT@|$CERT|g" "$SITE_FILE"
-            sudo sed -i "s|@SSL_CERT_KEY@|$CERT_KEY|g" "$SITE_FILE"
-            sudo ln -sf "$SITE_FILE" /etc/nginx/sites-enabled/quickquill-vps.conf
-
-            # Remove every other config referencing quickquill.ink to avoid
-            # duplicate-server-name conflicts; keep only the managed file.
-            for f in $(sudo grep -Rl "quickquill.ink" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null || true); do
-              case "$f" in
-                "$SITE_FILE"|*/quickquill-vps.conf) ;;
-                *) echo "Removing old nginx site: $f"; sudo rm -f "$f" ;;
-              esac
-            done
-
-            rollback() {
-              if [ -f /tmp/nginx.bak ]; then
-                sudo cp /tmp/nginx.bak "$SITE_FILE"
-                sudo nginx -t && sudo systemctl reload nginx
-              fi
-              exit 1
-            }
-
-            sudo nginx -t || rollback
-            sudo systemctl reload nginx
-
-            # Health check the SPA through nginx before touching the backend
-            curl -fsS -o /dev/null --resolve quickquill.ink:443:127.0.0.1 https://quickquill.ink/ \
-              || { echo "ERROR: SPA not served after nginx update"; rollback; }
-
-            # ---------- 3. Backend: run the Spring Boot JAR ----------
-            JAR=$(ls /var/www/quickquill/*.jar 2>/dev/null | head -n1 || true)
-            [ -n "$JAR" ] || JAR=$(find /var/www/quickquill -maxdepth 4 -name '*.jar' 2>/dev/null | head -n1 || true)
-            [ -n "$JAR" ] || { echo "ERROR: backend JAR not found on VPS"; exit 1; }
-
-            SO=/var/www/quickquill/libquickquill_engine.so
-            [ -f "$SO" ] || SO=$(find /var/www/quickquill -maxdepth 4 -name 'libquickquill_engine.so' 2>/dev/null | head -n1 || true)
-            [ -n "$SO" ] || { echo "ERROR: libquickquill_engine.so not found on VPS"; exit 1; }
-            LIBPATH=$(dirname "$SO")
-
-            OLD_EXEC=$(sudo systemctl cat quickquill-backend 2>/dev/null | grep -m1 '^ExecStart=' | sed 's/^ExecStart=//' || true)
-            DICT=$(echo "$OLD_EXEC" | grep -oE '/[^ ]*dictionary\.db' | head -n1 || true)
-            [ -n "$DICT" ] && [ -f "$DICT" ] || DICT=$(find /var/www/quickquill /var/www /srv /opt /home /root -maxdepth 4 -name 'dictionary.db' 2>/dev/null | head -n1 || true)
-            [ -n "$DICT" ] || { echo "ERROR: dictionary.db not found on VPS"; exit 1; }
-
-            # Stop legacy Docker backend containers or processes occupying port 8080
-            sudo docker stop quickquill-dictionary-spellchecker-backend-1 2>/dev/null || true
-            sudo docker stop $(sudo docker ps -q --filter "name=backend") 2>/dev/null || true
-            sudo docker compose -f /var/www/quickquill/docker-compose.yml down 2>/dev/null || true
-            sudo fuser -k 8080/tcp 2>/dev/null || true
-
-            sudo cp /etc/systemd/system/quickquill-backend.service /tmp/backend.bak 2>/dev/null || true
-
-            sudo tee /etc/systemd/system/quickquill-backend.service > /dev/null <<UNIT
-            [Unit]
-            Description=QuickQuill Spring Boot backend
-            After=network.target postgresql.service
-
-            [Service]
-            WorkingDirectory=/var/www/quickquill
-            Environment=SERVER_PORT=8080
-            Environment=DB_URL=jdbc:postgresql://localhost:5432/quickquill
-            Environment=DB_USERNAME=quickquill
-            Environment=DB_PASSWORD=quickquill
-            ExecStart=$JAVA_BIN --enable-native-access=ALL-UNNAMED -Djava.library.path=$LIBPATH -jar $JAR --quickquill.dictionary-path=$DICT
-            Restart=always
-            RestartSec=3
-
-            [Install]
-            WantedBy=multi-user.target
-            UNIT
-
-            sudo systemctl daemon-reload
-            sudo systemctl enable quickquill-backend >/dev/null 2>&1 || true
-            sudo systemctl restart quickquill-backend
-
-            backend_fail() {
-              echo "ERROR: $1"
-              echo "=== Systemd Backend Status & Logs ==="
-              sudo systemctl status quickquill-backend --no-pager -l || true
-              sudo journalctl -u quickquill-backend -n 100 --no-pager || true
-              if [ -f /tmp/backend.bak ]; then
-                echo "Restoring previous backend service"
-                sudo cp /tmp/backend.bak /etc/systemd/system/quickquill-backend.service
-                sudo systemctl daemon-reload
-                sudo systemctl restart quickquill-backend
-              fi
-              exit 1
-            }
-
-            WORD_CODE=""
-            for i in $(seq 1 36); do
-              WORD_CODE=$(curl -s -o /tmp/word.json -w "%{http_code}" http://127.0.0.1:8080/api/word/test 2>/dev/null || true)
-              [ "$WORD_CODE" = "200" ] && break
-              sleep 5
-            done
-            [ "$WORD_CODE" = "200" ] || backend_fail "dictionary/engine failed after JAR swap (word lookup got $WORD_CODE): $(cat /tmp/word.json 2>/dev/null || true)"
-
-            AUTH_CODE=""
-            for i in $(seq 1 12); do
-              AUTH_CODE=$(curl -s -o /tmp/auth.json -w "%{http_code}" -X POST \
-                http://127.0.0.1:8080/api/auth/login \
-                -d "email=probe@quickquill.ink" -d "password=probe" 2>/dev/null || true)
-              [ "$AUTH_CODE" = "401" ] && break
-              sleep 5
-            done
-            [ "$AUTH_CODE" = "401" ] || backend_fail "auth endpoint missing after JAR swap (got $AUTH_CODE): $(cat /tmp/auth.json 2>/dev/null || true)"
-
-            # ---------- 4. End-to-end through nginx (localhost to avoid hairpin NAT) ----------
-            PUB=$(curl -s -o /tmp/pub.json -w "%{http_code}" -X POST \
-              --resolve quickquill.ink:443:127.0.0.1 https://quickquill.ink/api/auth/login \
-              -d "email=probe@quickquill.ink" -d "password=probe" || true)
-            [ "$PUB" = "401" ] || { echo "ERROR: /api/auth not reachable via nginx (got $PUB):"; cat /tmp/pub.json; exit 1; }
-
-            echo "Deploy complete: auth endpoints live"
+            bash /var/www/quickquill/scripts/deploy_prod.sh
