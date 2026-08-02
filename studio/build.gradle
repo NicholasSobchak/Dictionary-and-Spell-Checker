@@ -16,6 +16,9 @@ java {
 
 repositories {
 	mavenCentral()
+	// Fallback mirror (see settings.gradle) for the intermittent Maven
+	// Central 403 on GitHub Actions runners.
+	maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2/') }
 }
 
 dependencies {

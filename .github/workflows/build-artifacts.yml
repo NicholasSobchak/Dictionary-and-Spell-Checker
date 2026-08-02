@@ -96,7 +96,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build backend JAR
-        run: ./gradlew bootJar
+        run: |
+          ./gradlew bootJar || { echo "First build attempt failed (likely Maven Central 403), retrying..."; sleep 30; ./gradlew bootJar; }
         working-directory: studio/
 
       - name: Upload backend artifact
