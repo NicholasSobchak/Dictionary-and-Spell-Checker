@@ -41,6 +41,22 @@ fi
 sudo systemctl enable --now docker >/dev/null 2>&1 || true
 docker info >/dev/null 2>&1 || die "docker daemon not reachable"
 
+# Ensure the docker compose v2 plugin exists BEFORE anything is stopped or
+# started: a pre-existing docker install may lack it, which makes every
+# "docker compose ..." call below fail ("unknown shorthand flag: 'f'").
+if ! sudo docker compose version >/dev/null 2>&1; then
+  log "Installing docker compose v2 plugin"
+  sudo dnf install -y docker-compose-plugin >/dev/null 2>&1 \
+    || (sudo apt-get update >/dev/null 2>&1 \
+        && sudo apt-get install -y docker-compose-plugin docker-compose-v2 >/dev/null 2>&1) \
+    || (sudo mkdir -p /usr/lib/docker/cli-plugins \
+        && sudo curl -fsSL -o /usr/lib/docker/cli-plugins/docker-compose \
+             "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+        && sudo chmod +x /usr/lib/docker/cli-plugins/docker-compose)
+  sudo docker compose version >/dev/null 2>&1 \
+    || die "docker compose v2 is not available (install the compose plugin on the VPS)"
+fi
+
 # Pulling requires auth for private repos; skip if no credentials were provided.
 if [ -n "${DOCKER_USERNAME:-}" ] && [ -n "${DOCKER_PASSWORD:-}" ]; then
   log "Logging in to Docker Hub"
@@ -100,11 +116,13 @@ PREV_TAG=""
 [ -f "$PREV_TAG_FILE" ] && PREV_TAG=$(cat "$PREV_TAG_FILE") || true
 
 log "Pulling images (tag $DOCKER_TAG)"
-sudo docker compose -f "$COMPOSE_FILE" pull backend nginx
+sudo docker compose -f "$COMPOSE_FILE" pull backend nginx \
+  || rollback "image pull failed"
 
 log "Starting stack"
 sudo docker compose -f "$COMPOSE_FILE" down --remove-orphans >/dev/null 2>&1 || true
-sudo docker compose -f "$COMPOSE_FILE" up -d --no-deps backend
+sudo docker compose -f "$COMPOSE_FILE" up -d --no-deps backend \
+  || rollback "backend container start failed"
 
 # Make certbot reload the dockerized nginx after renewal instead of the
 # (now disabled) system nginx.
@@ -119,7 +137,8 @@ HOOK
   sudo sed -i 's|renew_hook *= *systemctl reload nginx|renew_hook = docker restart quickquill-nginx-1|' /etc/letsencrypt/renewal/*.conf 2>/dev/null || true
 fi
 
-sudo docker compose -f "$COMPOSE_FILE" up -d --no-deps nginx
+sudo docker compose -f "$COMPOSE_FILE" up -d --no-deps nginx \
+  || rollback "nginx container start failed"
 
 # ---------- 5. Health checks ----------
 rollback() {
