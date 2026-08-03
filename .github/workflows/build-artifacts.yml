@@ -25,10 +25,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install C++ build tools
+      - name: Install clang-format for the style check
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build build-essential clang-format-17
+          sudo apt-get install -y clang-format-17
 
       - name: Check C++ formatting
         if: ${{ inputs.cpp-format-check }}
@@ -38,37 +38,45 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/vcpkg/archives
-          key: vcpkg-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-
+          key: vcpkg-glibc231-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-glibc231-
 
       - name: Cache vcpkg tool
         uses: actions/cache@v4
         with:
           path: vcpkg
-          key: vcpkg-tool-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-tool-
+          key: vcpkg-tool-glibc231-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-tool-glibc231-
 
-      - name: Bootstrap vcpkg
+      - name: Build engine in Ubuntu 20.04 container (glibc 2.31)
         run: |
-          if [ ! -f vcpkg/vcpkg ]; then
-            git clone https://github.com/microsoft/vcpkg.git
-            git -C vcpkg checkout 2025.04.09
-            ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
-          fi
-
-      - name: Configure CMake
-        run: cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux
-
-      - name: Build C++ engine
-        run: cmake --build build --target quickquill_engine
-
-      - name: Build C++ tests
-        if: ${{ inputs.run-cpp-tests }}
-        run: cmake --build build --target runTests
-
-      - name: Run C++ tests
-        if: ${{ inputs.run-cpp-tests }}
-        run: ctest --test-dir build --output-on-failure
+          # Build inside ubuntu:20.04 (glibc 2.31) so the .so loads on the
+          # VPS (built with the ubuntu-latest glibc 2.39 it failed with
+          # "GLIBC_2.38 not found"). The oldest glibc we require is then 2.28.
+          RUN_TESTS=${{ inputs.run-cpp-tests }}
+          mkdir -p "$HOME/.cache/vcpkg"
+          docker run --rm \
+            -e RUN_TESTS \
+            -v "$PWD":/workspace -w /workspace \
+            -v "$HOME/.cache/vcpkg":/root/.cache/vcpkg \
+            ubuntu:20.04 \
+            bash -euxo pipefail -c '
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y build-essential git curl unzip zip pkg-config ca-certificates python3-pip
+              pip3 install cmake ninja
+              if [ ! -f vcpkg/vcpkg ]; then
+                git clone https://github.com/microsoft/vcpkg.git vcpkg
+                git -C vcpkg checkout 2025.04.09
+                ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+              fi
+              cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=/workspace/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux
+              cmake --build build --target quickquill_engine
+              if [ "$RUN_TESTS" = "true" ]; then
+                cmake --build build --target runTests
+                ctest --test-dir build --output-on-failure
+              fi
+            '
 
       - name: Upload engine artifact
         uses: actions/upload-artifact@v4
