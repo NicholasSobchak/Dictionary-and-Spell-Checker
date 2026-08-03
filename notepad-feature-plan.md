@@ -1,5 +1,11 @@
 # Notepad Feature Plan — Per-User Private Text Editor
 
+> Status: **implemented** — backend (Note entity/repo/service/controller) and
+> frontend (autosave notepad page) are in place. `refreshSession`,
+> `changePassword`, and `deleteAccount` also now have endpoints
+> (`POST /api/auth/refresh|change-password|delete-account`) used from the
+> Profile page and app startup.
+
 The notepad is a private text editor: each user has exactly one note document,
 only they can see or edit it. Nothing is shared between users.
 
@@ -64,9 +70,12 @@ only they can see or edit it. Nothing is shared between users.
 - Frontend: `npm run build` + unit tests; manual pass through `localhost:80`
 
 ## Deploy impact
-- `notes` table auto-created by `ddl-auto=update` on restart — no manual migration.
-  VPS Postgres must be up (existing deployment requirement).
+- `notes` and `search_history` tables auto-created by `ddl-auto=update` on restart —
+  no manual migration. On existing databases the old `search_history` table is left
+  in place (empty) and reused. VPS Postgres must be up (existing deployment requirement).
 
-## Out of scope
-- User-scoped search history (entity exists, no endpoints exposed)
-- `changePassword` / `deleteAccount` / `refreshSession` (service methods exist, no controller endpoints)
+## Out of scope (now implemented)
+- User-scoped search history — implemented with `GET/POST/DELETE /api/search-history`
+  (+ `POST /sync` for backfilling local history on login)
+- `changePassword` / `deleteAccount` / `refreshSession` — endpoints added under
+  `/api/auth/*`, used from the Profile page and app startup

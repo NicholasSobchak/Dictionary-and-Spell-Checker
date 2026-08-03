@@ -94,7 +94,7 @@ Then place `dictionary.db` in the project root.
 │       ├── config/
 │       ├── controller/     # REST endpoints
 │       ├── engine/         # FFM bridge to C++
-│       ├── model/          # JPA entities (User, Session, SearchHistory)
+│       ├── model/          # JPA entities (User, Session, Note)
 │       ├── repository/     # Spring Data repos
 │       └── service/        # AuthService, etc.
 ├── web/             
@@ -226,10 +226,31 @@ cmake --build build
 
 ### Authentication
 
-- `POST /api/auth/signup?email=&password=&displayName=` — Register
+- `POST /api/auth/signup?email=&password=&displayName=` — Register, returns `{ token, user }` (opens a session immediately)
 - `POST /api/auth/login?email=&password=` — Login, returns `{ token, user }`
 - `POST /api/auth/logout?token=` — Logout
+- `POST /api/auth/refresh?token=` — Extend session expiry (+7 days)
+- `POST /api/auth/change-password?token=&oldPassword=&newPassword=` — Change password
+- `POST /api/auth/delete-account?token=` — Delete account and all dependent rows
 - `GET /api/auth/me?token=` — Current user info
+
+### Notepad (per-user)
+
+- `GET /api/note?token=` — Fetch the user's note
+- `PUT /api/note?token=&content=` — Save the user's note
+
+### Search History (per-user)
+
+- `GET /api/search-history?token=` — List the user's search words (most recent first)
+- `POST /api/search-history?token=&word=` — Record a search
+- `POST /api/search-history/sync?token=&word=a&word=b` — Record many words at once
+- `DELETE /api/search-history?token=` — Clear the user's search history
+
+### Suggested Words (per-user)
+
+- `GET /api/suggested-words?token=` — List the user's suggested words (most recent first)
+- `POST /api/suggested-words/sync?token=&word=a&word=b` — Record many words at once (stored synonyms)
+- `DELETE /api/suggested-words?token=` — Clear the user's suggested words
 
 Response shape for `/api/word/<word>`:
 ```json
@@ -255,6 +276,20 @@ Response shape for `/api/word/<word>`:
   "alternative_searches": []
 }
 ```
+
+#
+#
+## Deploy Notes
+
+- The backend uses `spring.jpa.hibernate.ddl-auto=update`, so new tables (`notes`,
+  `search_history`, `suggested_words`) are **auto-created on restart** — no manual
+  migration is needed.
+- `ddl-auto=update` **never drops tables**. On databases created before the
+  per-user search-history feature was enabled, the old `search_history` table is
+  simply left in place (empty) and reused; you do not need to drop it.
+- Backend deploys are handled by `scripts/deploy_prod.sh` (run on the VPS by the
+  `deploy.yml` workflow). The script backs up the currently-served JAR/.so and
+  rolls back if the new backend fails its health checks.
 
 #
 ## Academia Use & Data Attribution
