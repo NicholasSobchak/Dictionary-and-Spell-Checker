@@ -176,6 +176,43 @@
   margin: 12px 0 0;
 }
 
+.profile-message {
+  color: #7aa97a;
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+
+.profile-password-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+}
+
+.profile-password-form .profile-input {
+  margin-bottom: 4px;
+}
+
+.profile-danger {
+  padding: 10px 24px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 15px;
+  color: #b3565a;
+  background: transparent;
+  border: 1px solid #b3565a;
+  cursor: pointer;
+}
+
+.profile-danger:hover:not([disabled]) {
+  color: #ff6666;
+  border-color: #ff6666;
+}
+
+.profile-danger[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .profile-section {
   width: 100%;
   text-align: left;

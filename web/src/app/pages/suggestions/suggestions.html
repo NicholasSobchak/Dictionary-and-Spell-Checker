@@ -1,32 +1,7 @@
-<div class="shell">
-  <section class="card suggested-page">
-    <div class="suggested-page-header">
-      <h1 class="suggested-page-title">Suggested Words</h1>
-    </div>
-    <div class="line-container">
-      <img src="/assets/school_line.png" alt="" class="page-title-line" />
-      <div class="button-row">
-        <button class="back-button" routerLink="/">Back to Dictionary</button>
-        <button class="clear-history-button" (click)="clearAll()">Clear All</button>
-      </div>
-    </div>
-    <div class="row">
-      <input
-        [value]="filterText()"
-        (input)="onFilterInput($event)"
-        placeholder="search &lt;suggestions&gt;"
-        autocomplete="off"
-      />
-    </div>
-    <div class="suggested-words-grid">
-      @for (word of filteredWords(); track word) {
-        <button type="button" class="chip suggested-chip" (click)="searchWord(word)">
-          {{ word }}
-        </button>
-      }
-    </div>
-    @if (!filteredWords().length) {
-      <div class="history-empty">No suggested words yet.</div>
-    }
-  </section>
-</div>
+<app-word-list-page
+  [title]="title"
+  [placeholder]="placeholder"
+  [emptyMessage]="emptyMessage"
+  [getWords]="getWords"
+  [clearWords]="clearWords"
+/>

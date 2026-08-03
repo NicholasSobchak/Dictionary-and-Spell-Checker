@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, switchMap, tap, catchError, of, throwError } from 'rxjs';
+import { Observable, tap, map, catchError, of, throwError } from 'rxjs';
 import { Api } from './api';
+import { Storage } from './storage';
 import { AuthUser, AuthResponse } from '../models/auth.models';
 
 const AUTH_KEY = 'quickquill-auth';
@@ -10,6 +11,7 @@ const AUTH_KEY = 'quickquill-auth';
 })
 export class Auth {
   private api = inject(Api);
+  private storage = inject(Storage);
 
   private userSignal = signal<AuthUser | null>(null);
   private tokenSignal = signal<string | null>(null);
@@ -33,15 +35,60 @@ export class Auth {
 
   login(email: string, password: string): Observable<AuthUser> {
     return this.api.login(email, password).pipe(
-      tap((res) => this.setSession(res.token, res.user)),
-      switchMap((res) => of(res.user)),
+      tap((res) => {
+        this.setSession(res.token, res.user);
+        this.syncLocalDataToBackend();
+      }),
+      map((res) => res.user),
     );
   }
 
   signup(email: string, password: string, displayName: string): Observable<AuthUser> {
+    // The backend opens a session on signup, so no second login call is needed.
     return this.api.signup(email, password, displayName).pipe(
-      switchMap(() => this.login(email, password)),
+      tap((res) => {
+        this.setSession(res.token, res.user);
+        this.syncLocalDataToBackend();
+      }),
+      map((res) => res.user),
     );
+  }
+
+  /**
+   * When the user signs in, push the words they collected while logged out up to the
+   * backend so search history and suggested words follow them across devices.
+   * Fire-and-forget; a failure just leaves the backend lists as-is.
+   */
+  private syncLocalDataToBackend(): void {
+    const token = this.tokenSignal();
+    if (!token) {
+      return;
+    }
+    const history = this.storage.getHistory();
+    if (history.length > 0) {
+      // Send oldest-first so the most recent search keeps the newest timestamp.
+      this.api.syncSearchHistory(token, [...history].reverse()).subscribe({ error: () => {} });
+    }
+    const suggested = this.storage.getSuggestedWords();
+    if (suggested.length > 0) {
+      // Send oldest-first so the most recent suggestion keeps the newest timestamp.
+      this.api.syncSuggestedWords(token, [...suggested].reverse()).subscribe({ error: () => {} });
+    }
+  }
+
+  /**
+   * When the user signs in, push the words they searched while logged out up to the
+   * backend so history follows them across devices. Fire-and-forget; a failure just
+   * leaves history on the backend as-is.
+   */
+  private syncLocalHistoryToBackend(): void {
+    const token = this.tokenSignal();
+    const local = this.storage.getHistory();
+    if (!token || local.length === 0) {
+      return;
+    }
+    // Send oldest-first so the most recent search keeps the newest timestamp.
+    this.api.syncSearchHistory(token, [...local].reverse()).subscribe({ error: () => {} });
   }
 
   logout(): Observable<unknown> {
@@ -54,6 +101,40 @@ export class Auth {
       catchError(() => of(null)),
       tap(() => this.clearSession()),
     );
+  }
+
+  /** Extends the session on app start. Clears the session only if the server rejects the token. */
+  refreshSession(): Observable<AuthUser | null> {
+    const token = this.tokenSignal();
+    if (!token) {
+      return of(null);
+    }
+    return this.api.refresh(token).pipe(
+      tap((res) => this.setSession(res.token, res.user)),
+      map((res) => res.user),
+      catchError((err) => {
+        if (err?.status === 401) {
+          this.clearSession();
+        }
+        return of(null);
+      }),
+    );
+  }
+
+  changePassword(oldPassword: string, newPassword: string): Observable<{ message: string }> {
+    const token = this.tokenSignal();
+    if (!token) {
+      return throwError(() => new Error('Not authenticated.'));
+    }
+    return this.api.changePassword(token, oldPassword, newPassword);
+  }
+
+  deleteAccount(): Observable<{ message: string }> {
+    const token = this.tokenSignal();
+    if (!token) {
+      return throwError(() => new Error('Not authenticated.'));
+    }
+    return this.api.deleteAccount(token).pipe(tap(() => this.clearSession()));
   }
 
   updateProfile(displayName: string, email: string): Observable<AuthUser> {

@@ -5,6 +5,7 @@ import { Subject, Subscription, debounceTime, switchMap, of, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Api } from '../../services/api';
 import { Storage } from '../../services/storage';
+import { Auth } from '../../services/auth';
 import { WordResponse, WordNotFound, WordError } from '../../models/word.models';
 import { Chip } from '../../shared/chip/chip';
 import { ExpandableList } from '../../shared/expandable-list/expandable-list';
@@ -18,6 +19,7 @@ import { ExpandableList } from '../../shared/expandable-list/expandable-list';
 export class Dictionary implements OnInit, OnDestroy {
   private api = inject(Api);
   private storage = inject(Storage);
+  private auth = inject(Auth);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -116,6 +118,7 @@ export class Dictionary implements OnInit, OnDestroy {
           if (canonical) {
             this.searchInput.set(canonical);
             this.storage.addToHistory(canonical);
+            this.recordSearchToBackend(canonical);
             this.storeSuggestionsForQuery(canonical);
           }
         } else {
@@ -219,6 +222,13 @@ export class Dictionary implements OnInit, OnDestroy {
     });
   }
 
+  /** Mirrors a successful lookup to the per-user backend history when logged in. */
+  private recordSearchToBackend(word: string) {
+    const token = this.auth.token();
+    if (!token) return;
+    this.api.recordSearch(token, word).subscribe({ error: () => {} });
+  }
+
   private storeSuggestionsForQuery(word: string) {
     const cleaned = this.storage.displayWord(word);
     if (!cleaned) return;
@@ -230,9 +240,20 @@ export class Dictionary implements OnInit, OnDestroy {
           .filter(Boolean)
           .filter((w) => w.toLowerCase() !== cleaned.toLowerCase());
         this.storage.addSuggestedWords(words);
+        // addSuggestedWords prepends words[0] as the newest — send oldest-first so the
+        // backend keeps the same order.
+        this.syncSuggestedWordsToBackend([...words].reverse());
       },
       error: () => {},
     });
+  }
+
+  /** Mirrors stored synonyms to the per-user backend list when logged in. */
+  private syncSuggestedWordsToBackend(words: string[]) {
+    if (words.length === 0) return;
+    const token = this.auth.token();
+    if (!token) return;
+    this.api.syncSuggestedWords(token, words).subscribe({ error: () => {} });
   }
 
   private clearResult() {

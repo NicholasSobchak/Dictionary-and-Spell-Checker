@@ -1,7 +1,8 @@
 import { Component, inject } from '@angular/core';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { Auth } from '../../services/auth';
 import { apiErrorMessage } from '../../services/api';
+import { AuthForm } from '../../shared/auth-form/auth-form';
 
 @Component({
   selector: 'app-login',
@@ -9,13 +10,8 @@ import { apiErrorMessage } from '../../services/api';
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
-export class Login {
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
+export class Login extends AuthForm {
   private auth = inject(Auth);
-
-  errorMessage = '';
-  loading = false;
 
   onSubmit(event: Event, emailInput: HTMLInputElement, passwordInput: HTMLInputElement) {
     event.preventDefault();
@@ -33,8 +29,7 @@ export class Login {
     this.auth.login(email, password).subscribe({
       next: () => {
         this.loading = false;
-        const redirect = this.route.snapshot.queryParamMap.get('redirect');
-        this.router.navigate([redirect ?? '/']);
+        this.redirectAfterAuth();
       },
       error: (err) => {
         this.loading = false;

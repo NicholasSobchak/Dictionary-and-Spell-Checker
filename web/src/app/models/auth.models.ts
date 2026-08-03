@@ -1,4 +1,4 @@
-export interface AuthUser { 
+export interface AuthUser {
   id: number;
   email: string;
   displayName: string;
@@ -7,7 +7,6 @@ export interface AuthUser {
 export interface AuthResponse {
   token: string;
   user: AuthUser;
-  message: string;
 }
 
 export interface AuthError {

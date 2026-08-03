@@ -141,45 +141,6 @@ app-footer {
   padding-right: 12px;
 }
 
-.suggested-page,
-.history-page {
-  text-align: center;
-}
-
-.suggested-page-header,
-.history-page-header {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
-  margin-bottom: 24px;
-}
-
-.suggested-page-title,
-.history-page-title {
-  font-size: 32px;
-  letter-spacing: 0.9px;
-  color: var(--muted);
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.suggested-page input,
-.history-page input {
-  font-size: 18px;
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 0;
-  border: none;
-  background: transparent;
-  font-family: inherit;
-  color: var(--ink);
-  caret-color: var(--ink);
-  outline: none;
-}
-
 .line-container {
   position: relative;
   display: flex;
@@ -237,10 +198,4 @@ app-footer {
   letter-spacing: 0.4px;
   cursor: pointer;
   text-decoration: underline;
-}
-
-.history-empty {
-  color: var(--muted);
-  font-style: italic;
-  font-size: 14px;
 }

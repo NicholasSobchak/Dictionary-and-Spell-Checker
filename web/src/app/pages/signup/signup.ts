@@ -1,7 +1,8 @@
 import { Component, inject } from '@angular/core';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { Auth } from '../../services/auth';
 import { apiErrorMessage } from '../../services/api';
+import { AuthForm } from '../../shared/auth-form/auth-form';
 
 @Component({
   selector: 'app-signup',
@@ -9,19 +10,16 @@ import { apiErrorMessage } from '../../services/api';
   templateUrl: './signup.html',
   styleUrl: './signup.css',
 })
-export class Signup { 
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
+export class Signup extends AuthForm {
   private auth = inject(Auth);
 
-  errorMessage = '';
-  loading = false;
-
-  onSubmit(event: Event,
-           emailInput: HTMLInputElement,
-           displayNameInput: HTMLInputElement,
-           passwordInput: HTMLInputElement,
-           confirmPasswordInput: HTMLInputElement) {
+  onSubmit(
+    event: Event,
+    emailInput: HTMLInputElement,
+    displayNameInput: HTMLInputElement,
+    passwordInput: HTMLInputElement,
+    confirmPasswordInput: HTMLInputElement
+  ) {
     event.preventDefault();
 
     const email = emailInput.value.trim();
@@ -44,8 +42,7 @@ export class Signup {
     this.auth.signup(email, password, displayName).subscribe({
       next: () => {
         this.loading = false;
-        const redirect = this.route.snapshot.queryParamMap.get('redirect');
-        this.router.navigate([redirect ?? '/']);
+        this.redirectAfterAuth();
       },
       error: (err) => {
         this.loading = false;

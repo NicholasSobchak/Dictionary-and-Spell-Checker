@@ -1,0 +1,32 @@
+<div class="shell">
+  <section class="card word-list-page">
+    <div class="word-list-page-header">
+      <h1 class="word-list-page-title">{{ title() }}</h1>
+    </div>
+    <div class="line-container">
+      <img src="/assets/school_line.png" alt="" class="page-title-line" />
+      <div class="button-row">
+        <button class="back-button" routerLink="/">Back to Dictionary</button>
+        <button class="clear-history-button" (click)="clearAll()">Clear All</button>
+      </div>
+    </div>
+    <div class="row">
+      <input
+        [value]="filterText()"
+        (input)="onFilterInput($event)"
+        [placeholder]="placeholder()"
+        autocomplete="off"
+      />
+    </div>
+    <div class="word-list-grid">
+      @for (word of filteredWords(); track word) {
+        <button type="button" class="chip word-list-chip" (click)="searchWord(word)">
+          {{ word }}
+        </button>
+      }
+    </div>
+    @if (!filteredWords().length) {
+      <div class="word-list-empty">{{ emptyMessage() }}</div>
+    }
+  </section>
+</div>
