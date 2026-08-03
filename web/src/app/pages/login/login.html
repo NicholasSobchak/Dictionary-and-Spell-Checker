@@ -8,9 +8,9 @@
       <input id="login-email" class="auth-input" type="email" name="email" #emailInput placeholder="you@example.com" />
       <label class="auth-label" for="login-password">Password</label>
       <input id="login-password" class="auth-input" type="password" name="password" #passwordInput placeholder="Enter your password" />
-      <button type="submit" class="auth-submit" [disabled]="loading">Login</button>
-      @if (errorMessage) {
-        <p class="auth-error">{{ errorMessage }}</p>
+      <button type="submit" class="auth-submit" [disabled]="loading()">Login</button>
+      @if (errorMessage()) {
+        <p class="auth-error">{{ errorMessage() }}</p>
       }
     </form>
     <p class="auth-alt">

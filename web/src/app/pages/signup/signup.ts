@@ -28,25 +28,25 @@ export class Signup extends AuthForm {
     const confirmPassword = confirmPasswordInput.value;
 
     if (!email || !displayName || !password || !confirmPassword) {
-      this.errorMessage = 'Please fill in all fields.';
+      this.errorMessage.set('Please fill in all fields.');
       return;
     }
 
     if (password !== confirmPassword) {
-      this.errorMessage = 'Passwords do not match.';
+      this.errorMessage.set('Passwords do not match.');
       return;
     }
 
-    this.loading = true;
-    this.errorMessage = '';
+    this.loading.set(true);
+    this.errorMessage.set('');
     this.auth.signup(email, password, displayName).subscribe({
       next: () => {
-        this.loading = false;
+        this.loading.set(false);
         this.redirectAfterAuth();
       },
       error: (err) => {
-        this.loading = false;
-        this.errorMessage = apiErrorMessage(err, 'Signup failed. Please try again.');
+        this.loading.set(false);
+        this.errorMessage.set(apiErrorMessage(err, 'Signup failed. Please try again.'));
       },
     });
   }

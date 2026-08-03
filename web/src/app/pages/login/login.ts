@@ -20,20 +20,20 @@ export class Login extends AuthForm {
     const password = passwordInput.value;
 
     if (!email || !password) {
-      this.errorMessage = 'Please fill in all fields.';
+      this.errorMessage.set('Please fill in all fields.');
       return;
     }
 
-    this.loading = true;
-    this.errorMessage = '';
+    this.loading.set(true);
+    this.errorMessage.set('');
     this.auth.login(email, password).subscribe({
       next: () => {
-        this.loading = false;
+        this.loading.set(false);
         this.redirectAfterAuth();
       },
       error: (err) => {
-        this.loading = false;
-        this.errorMessage = apiErrorMessage(err, 'Login failed. Please check your credentials.');
+        this.loading.set(false);
+        this.errorMessage.set(apiErrorMessage(err, 'Login failed. Please check your credentials.'));
       },
     });
   }

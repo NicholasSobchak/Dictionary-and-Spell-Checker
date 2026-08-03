@@ -35,6 +35,11 @@ export class Dictionary implements OnInit, OnDestroy {
   ghostSuffix = signal('');
   showGhostHint = signal(false);
 
+  // Account-scoped history/suggested words fetched from the backend; used to
+  // personalize ghost-autofill. Empty when logged out (no local cache anymore).
+  private historyWords = signal<string[]>([]);
+  private suggestedWords = signal<string[]>([]);
+
   private suggest$ = new Subject<string>();
   private ghost$ = new Subject<{ typed: string; epoch: number }>();
   private lookup$ = new Subject<string>();
@@ -44,6 +49,8 @@ export class Dictionary implements OnInit, OnDestroy {
   private ghostEpoch = 0;
 
   ngOnInit() {
+    this.loadUserLists();
+
     this.suggestSub = this.suggest$
       .pipe(debounceTime(300))
       .subscribe((word) => this.fetchSuggestions(word));
@@ -55,8 +62,8 @@ export class Dictionary implements OnInit, OnDestroy {
           const lastSpace = typed.lastIndexOf(' ');
           const word = (lastSpace >= 0 ? typed.slice(lastSpace + 1) : typed).trim();
           if (word.length < 1) return of({ data: null, epoch });
-          const searchHistory = this.storage.getHistory().slice(0, 20);
-          const suggested = this.storage.getSuggestedWords().slice(0, 20);
+          const searchHistory = this.historyWords().slice(0, 20);
+          const suggested = this.suggestedWords().slice(0, 20);
           return this.api.autofill(word, searchHistory, suggested).pipe(
             catchError(() => of(null)),
             map((data) => ({ data, epoch }))
@@ -117,7 +124,7 @@ export class Dictionary implements OnInit, OnDestroy {
           );
           if (canonical) {
             this.searchInput.set(canonical);
-            this.storage.addToHistory(canonical);
+            this.prependHistory(canonical);
             this.recordSearchToBackend(canonical);
             this.storeSuggestionsForQuery(canonical);
           }
@@ -222,6 +229,32 @@ export class Dictionary implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Loads the account's search history and suggested words into in-memory signals
+   * used by ghost-autofill. When logged out there is no local cache, so both are
+   * empty (the backend is the single source of truth).
+   */
+  private loadUserLists(): void {
+    const token = this.auth.token();
+    if (!token) return;
+    this.api.getSearchHistory(token).subscribe({
+      next: (words) => this.historyWords.set(Array.isArray(words) ? words : []),
+      error: () => {},
+    });
+    this.api.getSuggestedWords(token).subscribe({
+      next: (words) => this.suggestedWords.set(Array.isArray(words) ? words : []),
+      error: () => {},
+    });
+  }
+
+  /** Moves a searched word to the front of the in-memory autofill history. */
+  private prependHistory(word: string): void {
+    this.historyWords.update((words) => [
+      word,
+      ...words.filter((w) => w.toLowerCase() !== word.toLowerCase()),
+    ]);
+  }
+
   /** Mirrors a successful lookup to the per-user backend history when logged in. */
   private recordSearchToBackend(word: string) {
     const token = this.auth.token();
@@ -239,12 +272,24 @@ export class Dictionary implements OnInit, OnDestroy {
           .map((w) => this.storage.displayWord(w))
           .filter(Boolean)
           .filter((w) => w.toLowerCase() !== cleaned.toLowerCase());
-        this.storage.addSuggestedWords(words);
-        // addSuggestedWords prepends words[0] as the newest — send oldest-first so the
-        // backend keeps the same order.
+        // Prepend the new synonyms so ghost-autofill sees them immediately, then
+        // mirror them to the backend (send oldest-first so the backend keeps the
+        // same order with words[0] as the newest).
+        this.suggestedWords.update((existing) => this.mergeUnique(words, existing));
         this.syncSuggestedWordsToBackend([...words].reverse());
       },
       error: () => {},
+    });
+  }
+
+  /** Merges new words in front of existing ones, de-duplicating case-insensitively. */
+  private mergeUnique(newWords: string[], existing: string[]): string[] {
+    const seen = new Set<string>();
+    return [...newWords, ...existing].filter((w) => {
+      const key = w.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
   }
 

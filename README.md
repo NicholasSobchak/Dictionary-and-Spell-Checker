@@ -243,7 +243,6 @@ cmake --build build
 
 - `GET /api/search-history?token=` — List the user's search words (most recent first)
 - `POST /api/search-history?token=&word=` — Record a search
-- `POST /api/search-history/sync?token=&word=a&word=b` — Record many words at once
 - `DELETE /api/search-history?token=` — Clear the user's search history
 
 ### Suggested Words (per-user)

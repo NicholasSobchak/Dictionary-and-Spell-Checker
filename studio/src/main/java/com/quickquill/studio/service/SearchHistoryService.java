@@ -34,15 +34,6 @@ public class SearchHistoryService {
     trim(user);
   }
 
-  /** Records many words in the given order (used to backfill local history on login). */
-  public void recordAll(String token, List<String> words) {
-    User user = authService.validateSession(token);
-    for (String word : words) {
-      save(user, word);
-    }
-    trim(user);
-  }
-
   public void clear(String token) {
     User user = authService.validateSession(token);
     repository.deleteByUser(user);

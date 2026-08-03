@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 import {
   WordResponse,
   WordNotFound,
@@ -71,31 +71,40 @@ export class Api {
     return encodeURIComponent(value).replace(/%20/g, '+');
   }
 
+  // AUTH_TIMEOUT_MS guards the auth calls below: without it, a slow or hung
+  // backend leaves the login/signup page stuck on its disabled submit button.
+  private static readonly AUTH_TIMEOUT_MS = 15000;
+
   signup(email: string, password: string, displayName: string): Observable<AuthResponse> {
     const body = new HttpParams()
       .set('email', email)
       .set('password', password)
       .set('displayName', displayName);
-    return this.http.post<AuthResponse>('/api/auth/signup', body);
+    return this.http
+      .post<AuthResponse>('/api/auth/signup', body)
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   login(email: string, password: string): Observable<AuthResponse> {
     const body = new HttpParams().set('email', email).set('password', password);
-    return this.http.post<AuthResponse>('/api/auth/login', body);
+    return this.http
+      .post<AuthResponse>('/api/auth/login', body)
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   logout(token: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      '/api/auth/logout',
-      new HttpParams().set('token', token)
-    );
+    return this.http
+      .post<{ message: string }>(
+        '/api/auth/logout',
+        new HttpParams().set('token', token)
+      )
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   refresh(token: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(
-      '/api/auth/refresh',
-      new HttpParams().set('token', token)
-    );
+    return this.http
+      .post<AuthResponse>('/api/auth/refresh', new HttpParams().set('token', token))
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   changePassword(
@@ -107,20 +116,26 @@ export class Api {
       .set('token', token)
       .set('oldPassword', oldPassword)
       .set('newPassword', newPassword);
-    return this.http.post<{ message: string }>('/api/auth/change-password', body);
+    return this.http
+      .post<{ message: string }>('/api/auth/change-password', body)
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   deleteAccount(token: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      '/api/auth/delete-account',
-      new HttpParams().set('token', token)
-    );
+    return this.http
+      .post<{ message: string }>(
+        '/api/auth/delete-account',
+        new HttpParams().set('token', token)
+      )
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   me(token: string): Observable<AuthUser> {
-    return this.http.get<AuthUser>('/api/auth/me', {
-      params: new HttpParams().set('token', token),
-    });
+    return this.http
+      .get<AuthUser>('/api/auth/me', {
+        params: new HttpParams().set('token', token),
+      })
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   updateProfile(token: string, displayName: string, email: string): Observable<AuthUser> {
@@ -128,7 +143,9 @@ export class Api {
       .set('token', token)
       .set('displayName', displayName)
       .set('email', email);
-    return this.http.post<AuthUser>('/api/auth/update', body);
+    return this.http
+      .post<AuthUser>('/api/auth/update', body)
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   getNote(token: string): Observable<NoteResponse> {
@@ -155,15 +172,6 @@ export class Api {
       '/api/search-history',
       new HttpParams().set('token', token).set('word', word)
     );
-  }
-
-  /** Records many words at once; order is preserved (used to backfill local history). */
-  syncSearchHistory(token: string, words: string[]): Observable<{ message: string }> {
-    let params = new HttpParams().set('token', token);
-    for (const word of words) {
-      params = params.append('word', word);
-    }
-    return this.http.post<{ message: string }>('/api/search-history/sync', params);
   }
 
   clearSearchHistory(token: string): Observable<{ message: string }> {

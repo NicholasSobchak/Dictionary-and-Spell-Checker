@@ -90,7 +90,9 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "release.tar.gz,scripts/deploy_prod.sh,scripts/import_extras.py"
+          # import_extras.py removed from the upload: the extras import is
+          # commented out in deploy_prod.sh (extras are already seeded on prod).
+          source: "release.tar.gz,scripts/deploy_prod.sh"
           target: /var/www/quickquill
           strip_components: 0
 

@@ -18,16 +18,19 @@ The backend owns auth: it stores users and sessions in Postgres, hashes password
 
 - `GET /search-history?token=` → 200 `["word1", "word2", ...]`, most recent first (401 if invalid token)
 - `POST /search-history?token=&word=` → 200 `{message}`, records a word (moves it to the front)
-- `POST /search-history/sync?token=&word=a&word=b` → 200 `{message}`, records many words at once (login backfill)
 - `DELETE /search-history?token=` → 200 `{message}`, clears the user's history
+
+History is account-scoped: there is no localStorage cache on the frontend anymore, so the backend is the only place history lives.
 
 History is capped at 500 words per user.
 
 ## Suggested words (base `/api/suggested-words`, all params form/query — no JSON)
 
 - `GET /suggested-words?token=` → 200 `["word1", "word2", ...]`, most recent first (401 if invalid token)
-- `POST /suggested-words/sync?token=&word=a&word=b` → 200 `{message}`, records many words at once (stored synonyms / login backfill)
+- `POST /suggested-words/sync?token=&word=a&word=b` → 200 `{message}`, records many words at once (stored synonyms)
 - `DELETE /suggested-words?token=` → 200 `{message}`, clears the user's suggested words
+
+Suggested words are account-scoped: no localStorage cache on the frontend anymore.
 
 Capped at 1000 words per user. `deleteAccount` removes history, suggested words, the
 note, and sessions.

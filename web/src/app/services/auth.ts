@@ -1,7 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, tap, map, catchError, of, throwError } from 'rxjs';
 import { Api } from './api';
-import { Storage } from './storage';
 import { AuthUser } from '../models/auth.models';
 
 const AUTH_KEY = 'quickquill-auth';
@@ -11,7 +10,6 @@ const AUTH_KEY = 'quickquill-auth';
 })
 export class Auth {
   private api = inject(Api);
-  private storage = inject(Storage);
 
   private userSignal = signal<AuthUser | null>(null);
   private tokenSignal = signal<string | null>(null);
@@ -35,10 +33,7 @@ export class Auth {
 
   login(email: string, password: string): Observable<AuthUser> {
     return this.api.login(email, password).pipe(
-      tap((res) => {
-        this.setSession(res.token, res.user);
-        this.syncLocalDataToBackend();
-      }),
+      tap((res) => this.setSession(res.token, res.user)),
       map((res) => res.user),
     );
   }
@@ -46,46 +41,24 @@ export class Auth {
   signup(email: string, password: string, displayName: string): Observable<AuthUser> {
     // The backend opens a session on signup, so no second login call is needed.
     return this.api.signup(email, password, displayName).pipe(
-      tap((res) => {
-        this.setSession(res.token, res.user);
-        this.syncLocalDataToBackend();
-      }),
+      tap((res) => this.setSession(res.token, res.user)),
       map((res) => res.user),
     );
   }
 
   /**
-   * When the user signs in, push the words they collected while logged out up to the
-   * backend so search history and suggested words follow them across devices.
-   * Fire-and-forget; a failure just leaves the backend lists as-is.
+   * Logs out locally first — the stored session is cleared synchronously, so the
+   * UI is logged out instantly regardless of network. The server-side session is
+   * then dropped as a fire-and-forget best effort; its failure never blocks or
+   * delays the local logout.
    */
-  private syncLocalDataToBackend(): void {
-    const token = this.tokenSignal();
-    if (!token) {
-      return;
-    }
-    const history = this.storage.getHistory();
-    if (history.length > 0) {
-      // Send oldest-first so the most recent search keeps the newest timestamp.
-      this.api.syncSearchHistory(token, [...history].reverse()).subscribe({ error: () => {} });
-    }
-    const suggested = this.storage.getSuggestedWords();
-    if (suggested.length > 0) {
-      // Send oldest-first so the most recent suggestion keeps the newest timestamp.
-      this.api.syncSuggestedWords(token, [...suggested].reverse()).subscribe({ error: () => {} });
-    }
-  }
-
   logout(): Observable<unknown> {
     const token = this.tokenSignal();
-    if (!token) {
-      this.clearSession();
-      return of(null);
+    this.clearSession();
+    if (token) {
+      this.api.logout(token).subscribe({ error: () => {} });
     }
-    return this.api.logout(token).pipe(
-      catchError(() => of(null)),
-      tap(() => this.clearSession()),
-    );
+    return of(null);
   }
 
   /** Extends the session on app start. Clears the session only if the server rejects the token. */

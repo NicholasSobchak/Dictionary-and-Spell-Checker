@@ -165,18 +165,16 @@ DICT=$(echo "$OLD_EXEC" | grep -oE '/[^ ]*dictionary\.db' | head -n1 || true)
 [ -n "$DICT" ] || die "dictionary.db not found on VPS"
 
 # ---------- 4.1. Import custom extras words (one-time-ish) ----------
-# IMPORTANT: Once the extras (nevermore, quickquill, neilmartini, ...) already
-# exist on the live website, COMMENT THIS OUT or DELETE this block. The import
-# is idempotent (it skips words that already exist), so it is safe to leave on
-# for a while, but it rewrites the dictionary every deploy and is only needed
-# until the extras are seeded.
-EXTRAS_SCRIPT="$APP_DIR/scripts/import_extras.py"
-if [ -f "$EXTRAS_SCRIPT" ] && command -v python3 >/dev/null 2>&1; then
-  log "Importing custom extras words into $(basename "$DICT")"
-  python3 "$EXTRAS_SCRIPT" --db "$DICT" || echo "WARNING: extras import failed (continuing deploy)"
-else
-  echo "NOTE: import_extras.py or python3 not found on VPS; skipping extras import"
-fi
+# DISABLED: the extras (nevermore, quickquill, neilmartini, ...) are already
+# seeded on the live site, so the import is commented out. Uncomment this block
+# to re-enable it on future deploys.
+# EXTRAS_SCRIPT="$APP_DIR/scripts/import_extras.py"
+# if [ -f "$EXTRAS_SCRIPT" ] && command -v python3 >/dev/null 2>&1; then
+#   log "Importing custom extras words into $(basename "$DICT")"
+#   python3 "$EXTRAS_SCRIPT" --db "$DICT" || echo "WARNING: extras import failed (continuing deploy)"
+# else
+#   echo "NOTE: import_extras.py or python3 not found on VPS; skipping extras import"
+# fi
 
 # Free port 8080 from any stale process or Docker container. The systemd
 # backend MUST own this port, otherwise the health checks below can hit a

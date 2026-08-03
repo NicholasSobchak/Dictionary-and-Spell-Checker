@@ -1,6 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { WordListPage } from '../../shared/word-list-page/word-list-page';
-import { Storage } from '../../services/storage';
 import { Api } from '../../services/api';
 import { Auth } from '../../services/auth';
 
@@ -10,35 +9,36 @@ import { Auth } from '../../services/auth';
   templateUrl: './suggestions.html',
 })
 export class Suggestions implements OnInit {
-  private storage = inject(Storage);
   private api = inject(Api);
   private auth = inject(Auth);
 
   readonly title = 'Suggested Words';
   readonly placeholder = 'search <suggestions>';
-  readonly emptyMessage = 'No suggested words yet.';
 
   private words = signal<string[]>([]);
+  private loggedOut = signal(false);
+
+  readonly emptyMessage = computed(() =>
+    this.loggedOut() ? 'Log in to see your suggested words.' : 'No suggested words yet.'
+  );
 
   ngOnInit() {
     const token = this.auth.token();
     if (!token) {
-      // Logged out: keep the local (offline) list.
-      this.words.set(this.storage.getSuggestedWords());
+      // No local cache — suggested words are account-scoped on the backend.
+      this.loggedOut.set(true);
+      this.words.set([]);
       return;
     }
-    // Logged in: the backend is the source of truth; fall back to local on error.
     this.api.getSuggestedWords(token).subscribe({
-      next: (words) => this.words.set(words),
-      error: () => this.words.set(this.storage.getSuggestedWords()),
+      next: (words) => this.words.set(Array.isArray(words) ? words : []),
+      error: () => this.words.set([]),
     });
   }
 
   getWords = () => this.words();
 
   clearWords = () => {
-    // Clear locally right away for an immediate UI response, then tell the backend.
-    this.storage.clearSuggestedWords();
     this.words.set([]);
     const token = this.auth.token();
     if (token) {

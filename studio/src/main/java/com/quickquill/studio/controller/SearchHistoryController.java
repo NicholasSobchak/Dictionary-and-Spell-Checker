@@ -1,7 +1,6 @@
 package com.quickquill.studio.controller;
 
 import com.quickquill.studio.service.SearchHistoryService;
-import java.util.List;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,14 +26,6 @@ public class SearchHistoryController {
   public ResponseEntity<?> record(@RequestParam String token, @RequestParam String word) {
     searchHistoryService.record(token, word);
     return ResponseEntity.ok(Map.of("message", "Search recorded."));
-  }
-
-  /** Records many words at once (used to backfill local history after login). */
-  @PostMapping("/sync")
-  public ResponseEntity<?> sync(
-      @RequestParam String token, @RequestParam(required = false) List<String> word) {
-    searchHistoryService.recordAll(token, word == null ? List.of() : word);
-    return ResponseEntity.ok(Map.of("message", "Search history synced."));
   }
 
   /** Clears the authenticated user's search history. */

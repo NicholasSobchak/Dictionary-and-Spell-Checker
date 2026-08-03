@@ -16,9 +16,9 @@
       <label class="auth-label" for="signup-confirm">Confirm Password</label>
       <input id="signup-confirm" class="auth-input" type="password" name="confirmPassword" #confirmPasswordInput placeholder="Repeat your password" />
 
-      <button type="submit" class="auth-submit" [disabled]="loading">Create Account</button>
-      @if (errorMessage) {
-        <p class="auth-error">{{ errorMessage }}</p>
+      <button type="submit" class="auth-submit" [disabled]="loading()">Create Account</button>
+      @if (errorMessage()) {
+        <p class="auth-error">{{ errorMessage() }}</p>
       }
     </form>
     <p class="auth-alt">

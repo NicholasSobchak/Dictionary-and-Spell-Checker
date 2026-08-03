@@ -1,6 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { WordListPage } from '../../shared/word-list-page/word-list-page';
-import { Storage } from '../../services/storage';
 import { Api } from '../../services/api';
 import { Auth } from '../../services/auth';
 
@@ -10,35 +9,36 @@ import { Auth } from '../../services/auth';
   templateUrl: './search-history.html',
 })
 export class SearchHistory implements OnInit {
-  private storage = inject(Storage);
   private api = inject(Api);
   private auth = inject(Auth);
 
   readonly title = 'Search History';
   readonly placeholder = 'search <history>';
-  readonly emptyMessage = 'No search history yet.';
 
   private words = signal<string[]>([]);
+  private loggedOut = signal(false);
+
+  readonly emptyMessage = computed(() =>
+    this.loggedOut() ? 'Log in to see your search history.' : 'No search history yet.'
+  );
 
   ngOnInit() {
     const token = this.auth.token();
     if (!token) {
-      // Logged out: keep the local (offline) history.
-      this.words.set(this.storage.getHistory());
+      // No local cache — history is account-scoped on the backend.
+      this.loggedOut.set(true);
+      this.words.set([]);
       return;
     }
-    // Logged in: the backend is the source of truth; fall back to local on error.
     this.api.getSearchHistory(token).subscribe({
-      next: (words) => this.words.set(words),
-      error: () => this.words.set(this.storage.getHistory()),
+      next: (words) => this.words.set(Array.isArray(words) ? words : []),
+      error: () => this.words.set([]),
     });
   }
 
   getWords = () => this.words();
 
   clearWords = () => {
-    // Clear locally right away for an immediate UI response, then tell the backend.
-    this.storage.clearHistory();
     this.words.set([]);
     const token = this.auth.token();
     if (token) {
