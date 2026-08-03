@@ -7,13 +7,17 @@
 #   DB_URL, DB_USERNAME, DB_PASSWORD   - host PostgreSQL credentials
 #   DOCKER_TAG                         - git SHA the images were built from
 #   DOCKER_IMAGE_BACKEND / _FRONTEND   - Docker Hub image names
-#   DOCKER_USERNAME / DOCKER_PASSWORD   - Docker Hub login (use an access token, not the account password)
+#   DOCKER_USERNAME / DOCKER_PASSWORD  - Docker Hub login (use an access token)
 #
 # The VPS stack is fully Dockerized (backend + nginx containers on host
 # networking). User data stays in the host PostgreSQL instance, which the
 # backend container reaches over localhost. The previous systemd/nginx deploy
 # is stopped and disabled; on failure this script rolls back to the previous
 # image tag, and as a last resort re-enables the old systemd stack.
+#
+# Safety: the new images are pulled BEFORE the legacy stack is touched, so a
+# pull failure leaves the running site untouched. Every step after the legacy
+# stack is stopped is guarded by rollback().
 set -euo pipefail
 
 APP_DIR=/var/www/quickquill
@@ -30,7 +34,49 @@ PREV_TAG_FILE=/tmp/qq_prev_tag
 
 [ -f "$COMPOSE_FILE" ] || die "docker-compose.prod.yml not found in $APP_DIR"
 
-# ---------- 0. Docker: install if missing, make sure the daemon is up ----------
+# COMPOSE runs docker compose as root with the variables the compose file needs
+# explicitly passed: sudo strips the caller's environment by default, which
+# would otherwise break the ${DB_URL:?} interpolation and fail the pull.
+COMPOSE() {
+  local tag="${COMPOSE_TAG:-$DOCKER_TAG}"
+  sudo env \
+    DOCKER_TAG="$tag" \
+    DOCKER_IMAGE_BACKEND="$DOCKER_IMAGE_BACKEND" \
+    DOCKER_IMAGE_FRONTEND="$DOCKER_IMAGE_FRONTEND" \
+    DB_URL="$DB_URL" \
+    DB_USERNAME="$DB_USERNAME" \
+    DB_PASSWORD="$DB_PASSWORD" \
+    docker compose -f "$COMPOSE_FILE" "$@"
+}
+
+PREV_TAG=""
+[ -f "$PREV_TAG_FILE" ] && PREV_TAG=$(cat "$PREV_TAG_FILE") || true
+
+# Defined early so every guarded step below can call it (bash requires
+# functions to exist before use).
+rollback() {
+  echo "ERROR: $*" >&2
+  COMPOSE logs --tail 80 backend nginx 2>/dev/null || true
+  COMPOSE down --remove-orphans 2>/dev/null || true
+  if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$DOCKER_TAG" ]; then
+    echo "Attempting rollback to previous image tag: $PREV_TAG"
+    if COMPOSE_TAG="$PREV_TAG" COMPOSE pull backend nginx \
+        && COMPOSE_TAG="$PREV_TAG" COMPOSE up -d --no-deps backend nginx; then
+      sleep 15
+      WORD_CODE=$(curl -s -o /tmp/word.json -w "%{http_code}" http://127.0.0.1:8080/api/word/test 2>/dev/null || true)
+      [ "$WORD_CODE" = "200" ] && { echo "Rollback to $PREV_TAG is serving"; exit 1; }
+    fi
+    COMPOSE down --remove-orphans 2>/dev/null || true
+  fi
+  echo "Restoring systemd stack"
+  sudo systemctl enable nginx >/dev/null 2>&1 || true
+  sudo systemctl start nginx 2>/dev/null || true
+  sudo systemctl enable quickquill-backend >/dev/null 2>&1 || true
+  sudo systemctl start quickquill-backend 2>/dev/null || true
+  exit 1
+}
+
+# ---------- 0. Docker + compose plugin: install if missing ----------
 if ! command -v docker >/dev/null 2>&1; then
   log "Installing Docker"
   sudo dnf install -y docker docker-compose-plugin >/dev/null 2>&1 \
@@ -41,9 +87,9 @@ fi
 sudo systemctl enable --now docker >/dev/null 2>&1 || true
 docker info >/dev/null 2>&1 || die "docker daemon not reachable"
 
-# Ensure the docker compose v2 plugin exists BEFORE anything is stopped or
-# started: a pre-existing docker install may lack it, which makes every
-# "docker compose ..." call below fail ("unknown shorthand flag: 'f'").
+# A pre-existing docker install may lack the compose v2 plugin, which makes
+# every "docker compose ..." call fail ("unknown shorthand flag: 'f'"). Verify
+# it BEFORE anything is stopped, and install it if missing.
 if ! sudo docker compose version >/dev/null 2>&1; then
   log "Installing docker compose v2 plugin"
   sudo dnf install -y docker-compose-plugin >/dev/null 2>&1 \
@@ -57,14 +103,14 @@ if ! sudo docker compose version >/dev/null 2>&1; then
     || die "docker compose v2 is not available (install the compose plugin on the VPS)"
 fi
 
-# Pulling requires auth for private repos; skip if no credentials were provided.
+# ---------- 1. Docker Hub login (skip if no credentials provided) ----------
 if [ -n "${DOCKER_USERNAME:-}" ] && [ -n "${DOCKER_PASSWORD:-}" ]; then
   log "Logging in to Docker Hub"
   echo "$DOCKER_PASSWORD" | sudo docker login -u "$DOCKER_USERNAME" --password-stdin >/dev/null \
     || die "docker login failed"
 fi
 
-# ---------- 1. Host PostgreSQL: ensure running + role/db exist ----------
+# ---------- 2. Host PostgreSQL: ensure running + role/db exist ----------
 # The dockerized backend uses host networking, so it connects to this instance
 # via localhost — existing user data is preserved untouched.
 [ -n "${DB_USERNAME:-}" ] || die "DB_USERNAME not set"
@@ -95,12 +141,18 @@ sudo -u postgres psql -c "ALTER ROLE \"$DB_USERNAME\" WITH PASSWORD '$DB_PASS_SQ
 sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1 \
   || sudo -u postgres createdb -O "$DB_USERNAME" "$DB_NAME"
 
-# ---------- 2. Dictionary database ----------
+# ---------- 3. Dictionary database ----------
 DICT=$(find "$APP_DIR" /var/www /srv /opt /home /root -maxdepth 4 -name 'dictionary.db' 2>/dev/null | head -n1 || true)
 [ -n "$DICT" ] || die "dictionary.db not found on VPS"
 log "Using dictionary: $DICT"
 
-# ---------- 3. Stop the legacy (systemd/apt-nginx) stack ----------
+# ---------- 4. Pull the freshly built images FIRST ----------
+# The legacy stack is still serving at this point, so a pull failure cannot
+# take the site down.
+log "Pulling images (tag $DOCKER_TAG)"
+COMPOSE pull backend nginx || rollback "image pull failed"
+
+# ---------- 5. Stop the legacy (systemd/apt-nginx) stack ----------
 # The docker containers must own 80/443/8080. The old artifacts and systemd
 # unit are left in place so rollback can bring them back.
 sudo systemctl stop quickquill-backend 2>/dev/null || true
@@ -111,18 +163,10 @@ sudo docker compose -f "$APP_DIR/docker-compose.yml" down 2>/dev/null || true
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y psmisc >/dev/null 2>&1 || true
 sudo fuser -k 80/tcp 443/tcp 8080/tcp >/dev/null 2>&1 || true
 
-# ---------- 4. Pull the freshly built images and start the stack ----------
-PREV_TAG=""
-[ -f "$PREV_TAG_FILE" ] && PREV_TAG=$(cat "$PREV_TAG_FILE") || true
-
-log "Pulling images (tag $DOCKER_TAG)"
-sudo docker compose -f "$COMPOSE_FILE" pull backend nginx \
-  || rollback "image pull failed"
-
+# ---------- 6. Start the new stack ----------
 log "Starting stack"
-sudo docker compose -f "$COMPOSE_FILE" down --remove-orphans >/dev/null 2>&1 || true
-sudo docker compose -f "$COMPOSE_FILE" up -d --no-deps backend \
-  || rollback "backend container start failed"
+COMPOSE down --remove-orphans >/dev/null 2>&1 || true
+COMPOSE up -d --no-deps backend || rollback "backend container start failed"
 
 # Make certbot reload the dockerized nginx after renewal instead of the
 # (now disabled) system nginx.
@@ -137,32 +181,9 @@ HOOK
   sudo sed -i 's|renew_hook *= *systemctl reload nginx|renew_hook = docker restart quickquill-nginx-1|' /etc/letsencrypt/renewal/*.conf 2>/dev/null || true
 fi
 
-sudo docker compose -f "$COMPOSE_FILE" up -d --no-deps nginx \
-  || rollback "nginx container start failed"
+COMPOSE up -d --no-deps nginx || rollback "nginx container start failed"
 
-# ---------- 5. Health checks ----------
-rollback() {
-  echo "ERROR: $*" >&2
-  sudo docker compose -f "$COMPOSE_FILE" logs --tail 80 backend nginx 2>/dev/null || true
-  sudo docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
-  if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$DOCKER_TAG" ]; then
-    echo "Attempting rollback to previous image tag: $PREV_TAG"
-    if sudo DOCKER_TAG="$PREV_TAG" docker compose -f "$COMPOSE_FILE" pull backend nginx \
-        && sudo DOCKER_TAG="$PREV_TAG" docker compose -f "$COMPOSE_FILE" up -d --no-deps backend nginx; then
-      sleep 15
-      WORD_CODE=$(curl -s -o /tmp/word.json -w "%{http_code}" http://127.0.0.1:8080/api/word/test 2>/dev/null || true)
-      [ "$WORD_CODE" = "200" ] && { echo "Rollback to $PREV_TAG is serving"; exit 1; }
-    fi
-    sudo docker compose -f "$COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
-  fi
-  echo "Restoring systemd stack"
-  sudo systemctl enable nginx >/dev/null 2>&1 || true
-  sudo systemctl start nginx 2>/dev/null || true
-  sudo systemctl enable quickquill-backend >/dev/null 2>&1 || true
-  sudo systemctl start quickquill-backend 2>/dev/null || true
-  exit 1
-}
-
+# ---------- 7. Health checks ----------
 # Backend must bind 8080 (boot can take minutes on a cold start).
 JAVA_ON_8080=""
 for i in $(seq 1 60); do
@@ -213,7 +234,7 @@ PUB=$(curl -s -o /tmp/pub.json -w "%{http_code}" -X POST \
   -d "email=probe@quickquill.ink" -d "password=probe" || true)
 [ "$PUB" = "401" ] || rollback "auth not reachable via nginx (got $PUB)"
 
-# ---------- 6. Record the now-current tag for the next rollback ----------
+# ---------- 8. Record the now-current tag for the next rollback ----------
 echo "$DOCKER_TAG" | sudo tee "$PREV_TAG_FILE" >/dev/null
 
 log "Deploy complete: docker stack live (tag $DOCKER_TAG)"
