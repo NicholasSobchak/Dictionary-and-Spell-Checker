@@ -53,10 +53,9 @@ jobs:
           # Build inside ubuntu:20.04 (glibc 2.31) so the .so loads on the
           # VPS (built with the ubuntu-latest glibc 2.39 it failed with
           # "GLIBC_2.38 not found"). The oldest glibc we require is then 2.28.
-          RUN_TESTS=${{ inputs.run-cpp-tests }}
           mkdir -p "$HOME/.cache/vcpkg"
           docker run --rm \
-            -e RUN_TESTS \
+            -e RUN_TESTS=${{ inputs.run-cpp-tests }} \
             -v "$PWD":/workspace -w /workspace \
             -v "$HOME/.cache/vcpkg":/root/.cache/vcpkg \
             ubuntu:20.04 \
