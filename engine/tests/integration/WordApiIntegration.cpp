@@ -3,24 +3,29 @@
 
 #include "MockDB.h"
 #include "core/Dictionary.h"
+#include "core/SpellChecker.h"
 #include "http/services/WordService.h"
 
 TEST_CASE("WordService::search", "[integration][api]")
 {
   static bool seeded = false;
+  static std::filesystem::path dbPath;
   if (!seeded)
   {
-    auto tmp = test_support::tempDbPath("qq_integration.sqlite");
-    auto db = test_support::makeFreshDb(tmp);
+    dbPath = test_support::tempDbPath("qq_integration.sqlite");
+    auto db = test_support::makeFreshDb(dbPath);
     test_support::seedWord(db, "lumen", "unit of luminous flux", {"light"});
-    http::wordService().warmupDictionary();
     Dictionary::clearGlobalCache();
     seeded = true;
   }
 
+  Dictionary dict;
+  SpellChecker checker(dict);
+  http::WordService service(dict, checker);
+
   SECTION("returns 200 with found word")
   {
-    auto res = http::wordService().search("lumen");
+    auto res = service.search("lumen");
 
     REQUIRE((res.status == 200));
     auto json = nlohmann::json::parse(res.body);
@@ -31,7 +36,7 @@ TEST_CASE("WordService::search", "[integration][api]")
 
   SECTION("returns 404 with suggestion when missing")
   {
-    auto res = http::wordService().search("lumon");
+    auto res = service.search("lumon");
 
     REQUIRE((res.status == 404));
     auto json = nlohmann::json::parse(res.body);

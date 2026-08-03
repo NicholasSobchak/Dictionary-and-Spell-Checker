@@ -23,7 +23,6 @@ services:
       start_period: 60s
     depends_on:
       - postgres
-      # - redis
 
   postgres:
     image: postgres:16-alpine
@@ -36,14 +35,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-
-  # redis:
-  #   image: redis:7-alpine
-  #   restart: unless-stopped
-  #   command:
-  #     redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
-  #   volumes:
-  #     - redis_data:/data
 
   nginx:
     image: nginx:stable-alpine

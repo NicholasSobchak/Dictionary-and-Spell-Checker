@@ -96,6 +96,31 @@ std::vector<std::string> parseJsonArray(const char *json_str)
   }
 }
 
+/**
+ * Run a WordService call against the shared engine state, copying its
+ * JSON body into the caller-provided buffer. Returns the bytes written,
+ * or -1 if the engine is uninitialized, the input is null, or the call
+ * threw.
+ */
+template <typename Fn> int runService(const char *input, char *buf, int buf_size, Fn call)
+{
+  if (!g_dict || !g_checker || !input)
+  {
+    return -1;
+  }
+
+  try
+  {
+    http::WordService svc(*g_dict, *g_checker);
+    auto result = call(svc);
+    return copyToBuf(result.body, buf, buf_size);
+  }
+  catch (...)
+  {
+    return -1;
+  }
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -151,59 +176,20 @@ extern "C"
 
   int qq_lookup(const char *word, char *buf, int buf_size)
   {
-    if (!g_dict || !g_checker || !word)
-    {
-      return -1;
-    }
-
-    try
-    {
-      http::WordService svc(*g_dict, *g_checker);
-      auto result = svc.search(word);
-      return copyToBuf(result.body, buf, buf_size);
-    }
-    catch (...)
-    {
-      return -1;
-    }
+    return runService(
+        word, buf, buf_size, [&](http::WordService &svc) { return svc.search(word); });
   }
 
   int qq_suggest(const char *word, char *buf, int buf_size)
   {
-    if (!g_dict || !g_checker || !word)
-    {
-      return -1;
-    }
-
-    try
-    {
-      http::WordService svc(*g_dict, *g_checker);
-      auto result = svc.suggest(word);
-      return copyToBuf(result.body, buf, buf_size);
-    }
-    catch (...)
-    {
-      return -1;
-    }
+    return runService(
+        word, buf, buf_size, [&](http::WordService &svc) { return svc.suggest(word); });
   }
 
   int qq_synonym(const char *word, char *buf, int buf_size)
   {
-    if (!g_dict || !g_checker || !word)
-    {
-      return -1;
-    }
-
-    try
-    {
-      http::WordService svc(*g_dict, *g_checker);
-      auto result = svc.suggestSynonym(word);
-      return copyToBuf(result.body, buf, buf_size);
-    }
-    catch (...)
-    {
-      return -1;
-    }
+    return runService(
+        word, buf, buf_size, [&](http::WordService &svc) { return svc.suggestSynonym(word); });
   }
 
   int qq_autofill(
@@ -213,24 +199,11 @@ extern "C"
       char *buf,
       int buf_size)
   {
-    if (!g_dict || !g_checker || !prefix)
-    {
-      return -1;
-    }
-
-    try
-    {
-      auto history = parseJsonArray(history_json);
-      auto suggested = parseJsonArray(suggested_json);
-
-      http::WordService svc(*g_dict, *g_checker);
-      auto result = svc.autofill(prefix, history, suggested);
-      return copyToBuf(result.body, buf, buf_size);
-    }
-    catch (...)
-    {
-      return -1;
-    }
+    return runService(
+        prefix, buf, buf_size,
+        [&](http::WordService &svc) {
+          return svc.autofill(prefix, parseJsonArray(history_json), parseJsonArray(suggested_json));
+        });
   }
 
 } // extern "C"

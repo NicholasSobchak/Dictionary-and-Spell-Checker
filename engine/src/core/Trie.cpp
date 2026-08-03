@@ -70,7 +70,7 @@ bool Trie::contains(std::string_view word) const
 
 void Trie::dump() const
 {
-  CROW_LOG_DEBUG << "(root)";
+  QQ_LOG_DEBUG << "(root)";
   dumpNode(m_root.get(), ""); // call recursive dump node function
 }
 
@@ -86,7 +86,7 @@ void Trie::dumpWord(std::string_view word) const
     return;
   }
 
-  CROW_LOG_DEBUG << "(root)";
+  QQ_LOG_DEBUG << "(root)";
   size_t depth{0}; // depth to left of screen
 
   for (char c : word)
@@ -95,7 +95,7 @@ void Trie::dumpWord(std::string_view word) const
 
     if (index < 0 || !node->m_children[index])
     {
-      CROW_LOG_DEBUG << std::string(depth * 4, ' ') << "└── " << c << "(missing)";
+      QQ_LOG_DEBUG << std::string(depth * 4, ' ') << "└── " << c << "(missing)";
       return;
     }
 
@@ -107,7 +107,7 @@ void Trie::dumpWord(std::string_view word) const
     {
       ss << " *";
     }
-    CROW_LOG_DEBUG << ss.str();
+    QQ_LOG_DEBUG << ss.str();
     ++depth;
   }
 }
@@ -276,7 +276,7 @@ void Trie::dumpNode(const TrieNode *node, const std::string &prefix) const
     {
       ss << " *";
     }
-    CROW_LOG_DEBUG << ss.str();
+    QQ_LOG_DEBUG << ss.str();
 
     dumpNode(child, prefix + (isLast ? "    " : "│   "));
   }

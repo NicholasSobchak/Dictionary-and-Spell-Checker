@@ -21,7 +21,7 @@ Database::Database(std::string_view filename)
   {
     if (errMsg)
     {
-      CROW_LOG_ERROR << "SQL error: " << errMsg;
+      QQ_LOG_ERROR << "SQL error: " << errMsg;
       sqlite3_free(errMsg);
     }
   }
@@ -93,7 +93,7 @@ void Database::createTables()
   {
     if (sqlite3_exec(m_db.get(), s, nullptr, nullptr, &errMsg) != SQLITE_OK)
     {
-      CROW_LOG_ERROR << "SQL error: " << errMsg;
+      QQ_LOG_ERROR << "SQL error: " << errMsg;
       sqlite3_free(errMsg);
     }
   }
@@ -119,7 +119,7 @@ void Database::createTables()
   {
     if (sqlite3_exec(m_db.get(), s, nullptr, nullptr, &errMsg) != SQLITE_OK)
     {
-      CROW_LOG_ERROR << "SQL error: " << errMsg;
+      QQ_LOG_ERROR << "SQL error: " << errMsg;
       sqlite3_free(errMsg);
     }
   }
@@ -431,7 +431,7 @@ void Database::clearDB()
     int rc = sqlite3_exec(m_db.get(), s, nullptr, nullptr, &errMsg);
     if (rc != SQLITE_OK)
     {
-      CROW_LOG_ERROR << "Error clearing database: " << errMsg;
+      QQ_LOG_ERROR << "Error clearing database: " << errMsg;
       sqlite3_free(errMsg);
     }
   }

@@ -11,7 +11,6 @@ public:
   explicit SpellChecker(const Dictionary &dict);
   ~SpellChecker() = default;
 
-  void dumpList(const std::vector<std::string> &out) const;
   std::vector<std::string> suggest(std::string_view prefix) const;
   std::string correct(std::string_view word) const;
   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)

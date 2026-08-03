@@ -1,5 +1,4 @@
 #include "core/SpellChecker.h"
-#include "logging.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -68,19 +67,4 @@ std::string SpellChecker::autofill(
   }
 
   return m_dict.autofillFromTrie(word, history, suggested);
-}
-
-void SpellChecker::dumpList(const std::vector<std::string> &out) const
-{
-  if (out.empty())
-  {
-    return;
-  }
-  else
-  {
-    for (const auto &word : out)
-    {
-      CROW_LOG_DEBUG << "  → " << word;
-    }
-  }
 }

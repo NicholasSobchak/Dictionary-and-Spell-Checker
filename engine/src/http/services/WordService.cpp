@@ -4,27 +4,11 @@
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cctype>
 #include <cstdlib>
 
 namespace http
 {
-namespace
-{
-Dictionary &dict()
-{
-  static Dictionary instance;
-  return instance;
-}
-
-SpellChecker &checker()
-{
-  static SpellChecker instance{dict()};
-  return instance;
-}
-} // end namespace
-
 std::string WordService::decodeInput(const std::string &in)
 {
   std::string out;
@@ -67,39 +51,7 @@ WordService::WordService(Dictionary &dict, SpellChecker &checker) : m_dict{dict}
 {
 }
 
-WordService &wordService()
-{
-  static WordService instance{dict(), checker()};
-  return instance;
-}
-
-/**
- * Forces static dictionary to construct and touch DB/Redis on current thread
- */
-void WordService::warmupDictionary() const
-{
-  static constexpr std::array<std::string_view, 8> kWarmupCandidates = {
-      "had", "half", "impaired", "this", "nameless", "grace", "that", "waves"};
-
-  for (const auto candidate : kWarmupCandidates)
-  {
-    if (!m_dict.contains(candidate))
-    {
-      continue;
-    }
-
-    const WordInfo info = m_dict.getWordInfo(candidate);
-    if (info.lemma.empty())
-    {
-      continue;
-    }
-
-    m_dict.getAlternativeSearches(candidate, info.id);
-    m_dict.suggestSynonyms(candidate);
-  }
-}
-
-SearchResult WordService::search(const std::string &word) const
+ServiceResult WordService::search(const std::string &word) const
 {
   const std::string decoded = decodeInput(word);
   const std::string sanitized = dct::sanitizeWord(decoded);
@@ -136,7 +88,7 @@ SearchResult WordService::search(const std::string &word) const
 /**
  * Provides similar searches using the suggest function
  */
-SuggestResult WordService::suggest(const std::string &word) const
+ServiceResult WordService::suggest(const std::string &word) const
 {
   const std::string decoded = decodeInput(word);
   const std::string sanitized = dct::sanitizeWord(decoded);
@@ -151,7 +103,7 @@ SuggestResult WordService::suggest(const std::string &word) const
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-AutofillResult WordService::autofill(
+ServiceResult WordService::autofill(
     const std::string &prefix,
     const std::vector<std::string> &history,
     const std::vector<std::string> &suggested) const
@@ -169,7 +121,7 @@ AutofillResult WordService::autofill(
   return {body.dump(), 200};
 }
 
-SuggestSynonymResult WordService::suggestSynonym(const std::string &word) const
+ServiceResult WordService::suggestSynonym(const std::string &word) const
 {
   const std::string decoded = decodeInput(word);
   const std::string sanitized = dct::sanitizeWord(decoded);

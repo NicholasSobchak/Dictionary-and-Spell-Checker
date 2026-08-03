@@ -123,6 +123,11 @@ WordInfo Dictionary::getWordInfo(std::string_view word) const
     return info;
   }
 
+  return loadWordInfo(id);
+}
+
+WordInfo Dictionary::loadWordInfo(dct::WordId id) const
+{
   // try cache first
   auto cached = getFromCache(id.value);
   if (cached)
@@ -131,7 +136,7 @@ WordInfo Dictionary::getWordInfo(std::string_view word) const
   }
 
   // cache miss - get from DB and store in cache
-  info = db().getInfo(id);
+  WordInfo info = db().getInfo(id);
   if (info.id.value != dct::g_defaultId)
   {
     setInCache(id.value, info);
@@ -164,21 +169,7 @@ Dictionary::getAlternativeSearches(std::string_view word, dct::WordId currentId)
       continue;
     }
 
-    // try cache first
-    auto cached = getFromCache(id.value);
-    WordInfo info;
-    if (cached)
-    {
-      info = *cached;
-    }
-    else
-    {
-      info = db().getInfo(id);
-      if (info.id.value != dct::g_defaultId)
-      {
-        setInCache(id.value, info);
-      }
-    }
+    const WordInfo info = loadWordInfo(id);
 
     const std::string label = info.displayLemma.empty() ? info.lemma : info.displayLemma;
     if (label.empty())
@@ -212,21 +203,7 @@ std::vector<std::string> Dictionary::suggestSynonyms(std::string_view word) cons
     return synonymSuggestions;
   }
 
-  // try cache first
-  auto cached = getFromCache(id.value);
-  WordInfo info;
-  if (cached)
-  {
-    info = *cached;
-  }
-  else
-  {
-    info = db().getInfo(id);
-    if (info.id.value != dct::g_defaultId)
-    {
-      setInCache(id.value, info);
-    }
-  }
+  const WordInfo info = loadWordInfo(id);
 
   // create pool of unique synonyms
   std::set<std::string> uniquePool;

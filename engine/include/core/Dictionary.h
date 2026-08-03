@@ -49,6 +49,9 @@ private:
   std::unordered_set<std::string> collectSuggestedWords(std::string_view word) const;
   Database &db() const;
   ThreadResources &resources() const;
+
+  // Cache-first fetch: returns cached WordInfo or loads it from the DB and caches it.
+  WordInfo loadWordInfo(dct::WordId id) const;
 };
 
 #endif // DICTIONARY_H

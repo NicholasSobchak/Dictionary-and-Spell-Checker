@@ -4,6 +4,37 @@
 #include <fstream>
 #include <iostream>
 
+namespace
+{
+// Env var takes precedence over config.json; falls back to the provided default.
+std::string getStringConfig(
+    const nlohmann::json &data, const char *envName, const char *key, const std::string &fallback)
+{
+  if (const char *env = std::getenv(envName); env && *env)
+  {
+    return std::string(env);
+  }
+  if (data.contains(key))
+  {
+    return data[key].get<std::string>();
+  }
+  return fallback;
+}
+
+int getIntConfig(const nlohmann::json &data, const char *envName, const char *key, int fallback)
+{
+  if (const char *env = std::getenv(envName); env && *env)
+  {
+    return std::atoi(env);
+  }
+  if (data.contains(key))
+  {
+    return data[key].get<int>();
+  }
+  return fallback;
+}
+} // namespace
+
 Config::Config()
 {
   std::ifstream f("config.json");
@@ -13,59 +44,13 @@ Config::Config()
   }
   else
   {
-    std::cerr << "Warning: config.json not found. Using default "
-                 "values.\n";
+    std::cerr << "Warning: config.json not found. Using default values.\n";
   }
 }
 
 std::string Config::getDatabasePath() const
 {
-  if (const char *env = std::getenv("DATABASE_PATH"); env && *env)
-  {
-    return std::string(env);
-  }
-  if (data.contains("database_path"))
-  {
-    return data["database_path"].get<std::string>();
-  }
-  return "dictionary.db"; // Default value
+  return getStringConfig(data, "DATABASE_PATH", "database_path", "dictionary.db");
 }
 
-int Config::getServerPort() const
-{
-  if (const char *env = std::getenv("SERVER_PORT"); env && *env)
-  {
-    return std::atoi(env);
-  }
-  if (data.contains("server_port"))
-  {
-    return data["server_port"].get<int>();
-  }
-  return 8080; // Default value
-}
-
-std::string Config::getRedisHost() const
-{
-  if (const char *env = std::getenv("REDIS_HOST"); env && *env)
-  {
-    return std::string(env);
-  }
-  if (data.contains("redis_host"))
-  {
-    return data["redis_host"].get<std::string>();
-  }
-  return "redis"; // Default value
-}
-
-int Config::getRedisPort() const
-{
-  if (const char *env = std::getenv("REDIS_PORT"); env && *env)
-  {
-    return std::atoi(env);
-  }
-  if (data.contains("redis_port"))
-  {
-    return data["redis_port"].get<int>();
-  }
-  return 6379; // Default value
-}
+int Config::getServerPort() const { return getIntConfig(data, "SERVER_PORT", "server_port", 8080); }
