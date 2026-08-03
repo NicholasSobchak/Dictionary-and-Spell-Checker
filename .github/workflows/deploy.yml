@@ -47,6 +47,14 @@ jobs:
           path: artifacts-frontend
 
       - name: Stage release tarball
+        # Secrets are injected through the environment (env:) rather than
+        # interpolated into the shell script, so values containing $, ", or
+        # backticks can't break or inject into the command. GitHub masks the
+        # values in logs either way.
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           # upload-artifact v4 flattens paths to the artifact root, so each
           # artifact's contents arrive loose in its own download directory.
@@ -61,8 +69,16 @@ jobs:
           cp -r artifacts-frontend/. release/browser/
           cp "$SO" release/libquickquill_engine.so
           cp "$BOOT_JAR" release/quickquill-backend.jar
-          cp deploy/nginx-quickquill-vps.conf release/
-          cp deploy/quickquill-backend.env release/
+          cp nginx/prod.conf release/
+          # DB credentials come from GitHub repo secrets via the env block
+          # above (never committed). The VPS systemd drop-in is built from
+          # this file by deploy_prod.sh.
+          test -n "$DB_URL" || { echo "ERROR: DB_URL secret not set"; exit 1; }
+          test -n "$DB_USERNAME" || { echo "ERROR: DB_USERNAME secret not set"; exit 1; }
+          test -n "$DB_PASSWORD" || { echo "ERROR: DB_PASSWORD secret not set"; exit 1; }
+          printf '[Service]\nEnvironment=DB_URL=%s\nEnvironment=DB_USERNAME=%s\nEnvironment=DB_PASSWORD=%s\n' \
+            "$DB_URL" "$DB_USERNAME" "$DB_PASSWORD" \
+            > release/vps-backend.env
           test -f release/quickquill-backend.jar || { echo "ERROR: JAR missing"; exit 1; }
           test -f release/libquickquill_engine.so || { echo "ERROR: .so missing"; exit 1; }
           test -f release/browser/index.html || { echo "ERROR: index.html missing"; exit 1; }
@@ -74,7 +90,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "release.tar.gz,scripts/deploy_prod.sh"
+          source: "release.tar.gz,scripts/deploy_prod.sh,scripts/import_extras.py"
           target: /var/www/quickquill
           strip_components: 0
 
