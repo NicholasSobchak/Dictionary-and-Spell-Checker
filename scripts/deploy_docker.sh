@@ -7,7 +7,7 @@
 #   DB_URL, DB_USERNAME, DB_PASSWORD   - host PostgreSQL credentials
 #   DOCKER_TAG                         - git SHA the images were built from
 #   DOCKER_IMAGE_BACKEND / _FRONTEND   - Docker Hub image names
-#   DOCKERHUB_USERNAME / DOCKERHUB_TOKEN - used to log in before pulling
+#   DOCKER_USERNAME / DOCKER_PASSWORD   - Docker Hub login (use an access token, not the account password)
 #
 # The VPS stack is fully Dockerized (backend + nginx containers on host
 # networking). User data stays in the host PostgreSQL instance, which the
@@ -41,10 +41,10 @@ fi
 sudo systemctl enable --now docker >/dev/null 2>&1 || true
 docker info >/dev/null 2>&1 || die "docker daemon not reachable"
 
-# Pulling requires auth for private repos; skip if no token was provided.
-if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
+# Pulling requires auth for private repos; skip if no credentials were provided.
+if [ -n "${DOCKER_USERNAME:-}" ] && [ -n "${DOCKER_PASSWORD:-}" ]; then
   log "Logging in to Docker Hub"
-  echo "$DOCKERHUB_TOKEN" | sudo docker login -u "$DOCKERHUB_USERNAME" --password-stdin >/dev/null \
+  echo "$DOCKER_PASSWORD" | sudo docker login -u "$DOCKER_USERNAME" --password-stdin >/dev/null \
     || die "docker login failed"
 fi
 

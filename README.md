@@ -296,7 +296,7 @@ Response shape for `/api/word/<word>`:
   Failed health checks roll back to the previous image tag.
 - The workflow needs these GitHub secrets: `SSH_HOST`, `SSH_USERNAME`,
   `SSH_PRIVATE_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`,
-  `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
+  `DOCKER_USERNAME` and `DOCKER_PASSWORD` (Docker Hub account + access token).
 
 #
 ## Academia Use & Data Attribution
