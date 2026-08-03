@@ -4,7 +4,7 @@ import { Auth } from '../../services/auth';
 import { AuthUser } from '../../models/auth.models';
 import { apiErrorMessage } from '../../services/api';
 
-type EditField = 'name' | 'email' | null;
+type EditField = 'name' | 'email' | 'password' | null;
 
 interface ProfileField {
   key: Exclude<EditField, null>;
@@ -27,6 +27,7 @@ export class Profile {
   readonly fields: ProfileField[] = [
     { key: 'name', label: 'Name', getValue: (u) => u.displayName },
     { key: 'email', label: 'Email', getValue: (u) => u.email },
+    { key: 'password', label: 'Password', getValue: () => '••••••••' },
   ];
 
   editingField = signal<EditField>(null);
@@ -95,6 +96,15 @@ export class Profile {
     this.passwordMessage.set(null);
   }
 
+  cancelPasswordEdit(): void {
+    this.editingField.set(null);
+    this.currentPassword.set('');
+    this.newPassword.set('');
+    this.confirmPassword.set('');
+    this.passwordError.set(null);
+    this.passwordMessage.set(null);
+  }
+
   savePassword(): void {
     const current = this.currentPassword();
     const next = this.newPassword();
@@ -119,6 +129,7 @@ export class Profile {
         this.currentPassword.set('');
         this.newPassword.set('');
         this.confirmPassword.set('');
+        this.editingField.set(null);
       },
       error: (err) => {
         this.passwordSaving.set(false);
