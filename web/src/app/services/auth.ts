@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, tap, map, catchError, of, throwError } from 'rxjs';
 import { Api } from './api';
 import { Storage } from './storage';
-import { AuthUser, AuthResponse } from '../models/auth.models';
+import { AuthUser } from '../models/auth.models';
 
 const AUTH_KEY = 'quickquill-auth';
 
@@ -74,21 +74,6 @@ export class Auth {
       // Send oldest-first so the most recent suggestion keeps the newest timestamp.
       this.api.syncSuggestedWords(token, [...suggested].reverse()).subscribe({ error: () => {} });
     }
-  }
-
-  /**
-   * When the user signs in, push the words they searched while logged out up to the
-   * backend so history follows them across devices. Fire-and-forget; a failure just
-   * leaves history on the backend as-is.
-   */
-  private syncLocalHistoryToBackend(): void {
-    const token = this.tokenSignal();
-    const local = this.storage.getHistory();
-    if (!token || local.length === 0) {
-      return;
-    }
-    // Send oldest-first so the most recent search keeps the newest timestamp.
-    this.api.syncSearchHistory(token, [...local].reverse()).subscribe({ error: () => {} });
   }
 
   logout(): Observable<unknown> {
