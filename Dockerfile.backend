@@ -1,0 +1,38 @@
+# QuickQuill backend image: Spring Boot JAR + C++ engine .so.
+# Built and pushed by .github/workflows/deploy.yml, then pulled on the VPS.
+
+### C++ engine build stage
+FROM debian:bookworm-slim AS engine
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends build-essential cmake git ca-certificates curl pkg-config unzip tar zip python3 \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+# Pin vcpkg to the same revision CI uses for reproducible builds.
+RUN git clone --depth=1 --branch 2025.04.09 https://github.com/microsoft/vcpkg.git /src/vcpkg \
+  && /src/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+COPY . /src/
+RUN /src/vcpkg/vcpkg install --triplet x64-linux
+
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+     -DCMAKE_TOOLCHAIN_FILE=/src/vcpkg/scripts/buildsystems/vcpkg.cmake \
+     -DVCPKG_TARGET_TRIPLET=x64-linux \
+  && cmake --build build --target quickquill_engine -j$(nproc)
+
+### Spring Boot build stage
+FROM eclipse-temurin:22-jdk AS backend
+WORKDIR /src
+COPY studio/ ./
+COPY --from=engine /src/build/engine/src/libquickquill_engine.so /src/build/engine/src/libquickquill_engine.so
+RUN ./gradlew bootJar
+
+### Final runtime image
+FROM eclipse-temurin:22-jre
+WORKDIR /app
+
+COPY --from=backend /src/build/libs/*.jar ./app.jar
+COPY --from=engine /src/build/engine/src/libquickquill_engine.so ./libquickquill_engine.so
+
+EXPOSE 8080
+CMD ["java", "--enable-native-access=ALL-UNNAMED", "-Djava.library.path=.", "-jar", "app.jar", "--quickquill.dictionary-path=/app/dictionary.db"]

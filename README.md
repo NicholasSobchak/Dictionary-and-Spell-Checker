@@ -286,9 +286,17 @@ Response shape for `/api/word/<word>`:
 - `ddl-auto=update` **never drops tables**. On databases created before the
   per-user search-history feature was enabled, the old `search_history` table is
   simply left in place (empty) and reused; you do not need to drop it.
-- Backend deploys are handled by `scripts/deploy_prod.sh` (run on the VPS by the
-  `deploy.yml` workflow). The script backs up the currently-served JAR/.so and
-  rolls back if the new backend fails its health checks.
+- Deployment is fully Dockerized. On every push to `main`, the `deploy.yml`
+  workflow builds and pushes two images to Docker Hub
+  (`<user>/quickquill-backend` and `<user>/quickquill-frontend`, tagged `latest`
+  and with the git SHA), then `scripts/deploy_docker.sh` runs on the VPS to
+  pull those exact images and start `docker-compose.prod.yml`. The stack uses
+  host networking: nginx owns 80/443 and the backend owns 8080, talking to the
+  host PostgreSQL over `localhost` (user data stays in the host database).
+  Failed health checks roll back to the previous image tag.
+- The workflow needs these GitHub secrets: `SSH_HOST`, `SSH_USERNAME`,
+  `SSH_PRIVATE_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`,
+  `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
 
 #
 ## Academia Use & Data Attribution
