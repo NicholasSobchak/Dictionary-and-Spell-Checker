@@ -2,7 +2,10 @@ package com.quickquill.studio.service;
 
 import com.quickquill.studio.model.Session;
 import com.quickquill.studio.model.User;
+import com.quickquill.studio.repository.NoteRepository;
+import com.quickquill.studio.repository.SearchHistoryRepository;
 import com.quickquill.studio.repository.SessionRepository;
+import com.quickquill.studio.repository.SuggestedWordRepository;
 import com.quickquill.studio.repository.UserRepository;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,24 +18,37 @@ public class AuthService {
 
   private final UserRepository userRepo;
   private final SessionRepository sessionRepo;
+  private final NoteRepository noteRepo;
+  private final SearchHistoryRepository searchHistoryRepo;
+  private final SuggestedWordRepository suggestedWordRepo;
   private final BCryptPasswordEncoder passwordEncoder;
 
-  public AuthService(UserRepository userRepo, SessionRepository sessionRepo) {
+  public AuthService(
+      UserRepository userRepo,
+      SessionRepository sessionRepo,
+      NoteRepository noteRepo,
+      SearchHistoryRepository searchHistoryRepo,
+      SuggestedWordRepository suggestedWordRepo) {
     this.userRepo = userRepo;
     this.sessionRepo = sessionRepo;
+    this.noteRepo = noteRepo;
+    this.searchHistoryRepo = searchHistoryRepo;
+    this.suggestedWordRepo = suggestedWordRepo;
     this.passwordEncoder = new BCryptPasswordEncoder();
   }
 
-  public User signup(String email, String password, String displayName) {
+  /** Registers a user and immediately opens a session so signup needs no second login call. */
+  public Session signup(String email, String password, String displayName) {
     if (userRepo.findByEmail(email).isPresent()) {
       throw new IllegalArgumentException("Email already registered.");
     }
     User user = new User(email, passwordEncoder.encode(password), displayName);
     try {
-      return userRepo.save(user);
+      user = userRepo.save(user);
     } catch (DataIntegrityViolationException e) {
       throw new IllegalArgumentException("Email already registered.");
     }
+    return sessionRepo.save(new Session(user));
   }
 
   public Session login(String email, String password) {
@@ -101,11 +117,9 @@ public class AuthService {
     }
   }
 
-  public void changePassword(Long userId, String oldPassword, String newPassword) {
-    User user =
-        userRepo
-            .findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found."));
+  /** Resolves the user from the session token — never trusts a client-supplied user id. */
+  public void changePassword(String token, String oldPassword, String newPassword) {
+    User user = validateSession(token);
 
     if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
       throw new IllegalArgumentException("Wrong password.");
@@ -115,8 +129,14 @@ public class AuthService {
     userRepo.save(user);
   }
 
-  public void deleteAccount(Long userId) {
-    sessionRepo.deleteByUser(userRepo.getReferenceById(userId));
-    userRepo.deleteById(userId);
+  /** Resolves the user from the session token and deletes the account and all dependent rows. */
+  public void deleteAccount(String token) {
+    User user = validateSession(token);
+    // Child rows reference the user with non-null FKs — delete them before the user.
+    noteRepo.deleteByUser(user);
+    searchHistoryRepo.deleteByUser(user);
+    suggestedWordRepo.deleteByUser(user);
+    sessionRepo.deleteByUser(user);
+    userRepo.deleteById(user.getId());
   }
 }

@@ -1,6 +1,9 @@
 package com.quickquill.studio.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quickquill.studio.engine.WordEngine;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,14 +12,20 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class WordController {
 
+  private final ObjectMapper objectMapper;
+
+  public WordController(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
+
   /**
-   * Look up a word in the dictionary. Returns 200 with full word JSON on hit, or 404 with a
-   * suggestion on miss.
+   * Look up a word in the dictionary. Returns 200 with full word JSON on hit, 404 with a suggestion
+   * on miss, or 400 with an error for invalid input.
    */
   @GetMapping("/word/{word}")
   public ResponseEntity<String> lookup(@PathVariable String word) {
     String json = WordEngine.lookup(word);
-    int status = json.contains("\"found\" : false") ? 404 : 200;
+    int status = statusFor(json);
     return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(json);
   }
 
@@ -43,12 +52,29 @@ public class WordController {
   @GetMapping("/autofill/{word}")
   public ResponseEntity<String> autofill(
       @PathVariable String word,
-      @RequestParam(defaultValue = "") String history,
-      @RequestParam(defaultValue = "") String suggested) {
-    String historyJson = history.isEmpty() ? "[]" : history;
-    String suggestedJson = suggested.isEmpty() ? "[]" : suggested;
+      @RequestParam(defaultValue = "[]") String history,
+      @RequestParam(defaultValue = "[]") String suggested) {
     return ResponseEntity.ok()
         .contentType(MediaType.APPLICATION_JSON)
-        .body(WordEngine.autofill(word, historyJson, suggestedJson));
+        .body(WordEngine.autofill(word, history, suggested));
+  }
+
+  /**
+   * Derive the HTTP status from the engine's JSON payload instead of string-matching serialized
+   * output: {"found": false} → 404, {"error": ...} → 400, otherwise 200.
+   */
+  private int statusFor(String json) {
+    try {
+      JsonNode node = objectMapper.readTree(json);
+      if (node.has("found") && !node.get("found").asBoolean()) {
+        return HttpStatus.NOT_FOUND.value();
+      }
+      if (node.has("error")) {
+        return HttpStatus.BAD_REQUEST.value();
+      }
+      return HttpStatus.OK.value();
+    } catch (Exception e) {
+      return HttpStatus.INTERNAL_SERVER_ERROR.value();
+    }
   }
 }
