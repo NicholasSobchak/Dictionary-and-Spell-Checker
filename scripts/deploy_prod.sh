@@ -20,7 +20,13 @@ cd "$APP_DIR"
 log() { printf '\n=== %s ===\n' "$*"; }
 die() { echo "ERROR: $*" >&2; exit 1; }
 
-# ---------- 0. Extract release artifacts ----------
+# ---------- 0. Back up currently-served binaries ----------
+# The release overwrites the JAR and .so in place; if the new backend fails
+# to start, rollback must be able to restore the previous working pair.
+[ -f "$APP_DIR/quickquill-backend.jar" ] && cp "$APP_DIR/quickquill-backend.jar" /tmp/quickquill-backend.jar.bak || true
+[ -f "$APP_DIR/libquickquill_engine.so" ] && cp "$APP_DIR/libquickquill_engine.so" /tmp/libquickquill_engine.so.bak || true
+
+# ---------- 1. Extract release artifacts ----------
 log "Extracting release artifacts"
 test -f release.tar.gz || die "release.tar.gz not found in $APP_DIR"
 tar -xzf release.tar.gz
@@ -196,6 +202,8 @@ backend_fail() {
   if [ -f /tmp/backend.bak ]; then
     echo "Restoring previous backend service"
     sudo cp /tmp/backend.bak /etc/systemd/system/quickquill-backend.service
+    [ -f /tmp/quickquill-backend.jar.bak ] && sudo cp /tmp/quickquill-backend.jar.bak "$APP_DIR/quickquill-backend.jar" || true
+    [ -f /tmp/libquickquill_engine.so.bak ] && sudo cp /tmp/libquickquill_engine.so.bak "$APP_DIR/libquickquill_engine.so" || true
     sudo systemctl daemon-reload
     sudo systemctl restart quickquill-backend
   fi
@@ -213,7 +221,7 @@ for i in $(seq 1 24); do
   fi
   sleep 5
 done
-[ -n "$JAVA_ON_8080" ] || backend_fail "port 8080 is not served by the Java backend (stale process/container holds it): $(sudo ss -ltnp 'sport = :8080' 2>/dev/null || true)"
+[ -n "$JAVA_ON_8080" ] || backend_fail "backend did not bind port 8080 after restart (new JAR likely crashed; see journal below): $(sudo ss -ltnp 'sport = :8080' 2>/dev/null || true)"
 
 WORD_CODE=""
 for i in $(seq 1 36); do
