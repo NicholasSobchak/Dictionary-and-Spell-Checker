@@ -32,34 +32,35 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: engine
-          path: artifacts
+          path: artifacts-engine
 
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
           name: backend
-          path: artifacts
+          path: artifacts-backend
 
       - name: Download frontend artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend
-          path: artifacts
+          path: artifacts-frontend
 
       - name: Stage release tarball
         run: |
-          # Locate artifacts by name: upload-artifact flattens wildcard
-          # paths after the first wildcard, so don't assume the layout.
-          SO=$(find artifacts -type f -name 'libquickquill_engine.so' 2>/dev/null | head -n1 || true)
-          BOOT_JAR=$(find artifacts -type f -name '*.jar' ! -name '*-plain.jar' 2>/dev/null | head -n1 || true)
-          BROWSER=$(find artifacts -type d -name browser 2>/dev/null | head -n1 || true)
+          # upload-artifact v4 flattens paths to the artifact root, so each
+          # artifact's contents arrive loose in its own download directory.
+          # Locate files by name and copy the frontend contents wholesale.
+          SO=$(find artifacts-engine -type f -name 'libquickquill_engine.so' 2>/dev/null | head -n1 || true)
+          BOOT_JAR=$(find artifacts-backend -type f -name '*.jar' ! -name '*-plain.jar' 2>/dev/null | head -n1 || true)
+          INDEX_HTML=$(find artifacts-frontend -type f -name 'index.html' 2>/dev/null | head -n1 || true)
           test -n "$SO" || { echo "ERROR: libquickquill_engine.so not found"; exit 1; }
           test -n "$BOOT_JAR" || { echo "ERROR: boot JAR not found"; exit 1; }
-          test -n "$BROWSER" || { echo "ERROR: browser build not found"; exit 1; }
+          test -n "$INDEX_HTML" || { echo "ERROR: frontend index.html not found"; exit 1; }
           mkdir -p release/browser
+          cp -r artifacts-frontend/. release/browser/
           cp "$SO" release/libquickquill_engine.so
           cp "$BOOT_JAR" release/quickquill-backend.jar
-          cp -r "$BROWSER"/. release/browser/
           cp deploy/nginx-quickquill-vps.conf release/
           cp deploy/quickquill-backend.env release/
           test -f release/quickquill-backend.jar || { echo "ERROR: JAR missing"; exit 1; }
