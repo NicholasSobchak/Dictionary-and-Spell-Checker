@@ -1,21 +1,21 @@
 package com.quickquill.studio.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quickquill.studio.engine.WordEngine;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 @RestController
 @RequestMapping("/api")
 public class WordController {
 
-  private final ObjectMapper objectMapper;
+  private final JsonMapper jsonMapper;
 
-  public WordController(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
+  public WordController(JsonMapper jsonMapper) {
+    this.jsonMapper = jsonMapper;
   }
 
   /**
@@ -65,7 +65,7 @@ public class WordController {
    */
   private int statusFor(String json) {
     try {
-      JsonNode node = objectMapper.readTree(json);
+      JsonNode node = jsonMapper.readTree(json);
       if (node.has("found") && !node.get("found").asBoolean()) {
         return HttpStatus.NOT_FOUND.value();
       }
