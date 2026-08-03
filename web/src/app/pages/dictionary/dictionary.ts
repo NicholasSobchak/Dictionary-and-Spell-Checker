@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
-import { Subject, Subscription, debounceTime, switchMap, of } from 'rxjs';
+import { Subject, Subscription, debounceTime, switchMap, of, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Api } from '../../services/api';
 import { Storage } from '../../services/storage';
@@ -34,11 +34,12 @@ export class Dictionary implements OnInit, OnDestroy {
   showGhostHint = signal(false);
 
   private suggest$ = new Subject<string>();
-  private ghost$ = new Subject<string>();
+  private ghost$ = new Subject<{ typed: string; epoch: number }>();
   private lookup$ = new Subject<string>();
   private suggestSub?: Subscription;
   private ghostSub?: Subscription;
   private lookupSub?: Subscription;
+  private ghostEpoch = 0;
 
   ngOnInit() {
     this.suggestSub = this.suggest$
@@ -48,18 +49,20 @@ export class Dictionary implements OnInit, OnDestroy {
     this.ghostSub = this.ghost$
       .pipe(
         debounceTime(50),
-        switchMap((typed) => {
+        switchMap(({ typed, epoch }) => {
           const lastSpace = typed.lastIndexOf(' ');
           const word = (lastSpace >= 0 ? typed.slice(lastSpace + 1) : typed).trim();
-          if (word.length < 1) return of(null);
+          if (word.length < 1) return of({ data: null, epoch });
           const searchHistory = this.storage.getHistory().slice(0, 20);
           const suggested = this.storage.getSuggestedWords().slice(0, 20);
           return this.api.autofill(word, searchHistory, suggested).pipe(
-            catchError(() => of(null))
+            catchError(() => of(null)),
+            map((data) => ({ data, epoch }))
           );
         })
       )
-      .subscribe((data) => {
+      .subscribe(({ data, epoch }) => {
+        if (epoch !== this.ghostEpoch) return;
         if (!data) {
           this.clearGhostText();
           return;
@@ -147,7 +150,7 @@ export class Dictionary implements OnInit, OnDestroy {
     } else {
       this.clearGhostText();
       this.ghostTyped.set(value);
-      this.ghost$.next(value);
+      this.ghost$.next({ typed: value, epoch: this.ghostEpoch });
     }
 
     this.suggest$.next(trimmed);
@@ -173,6 +176,7 @@ export class Dictionary implements OnInit, OnDestroy {
       queryParamsHandling: 'merge',
     });
 
+    this.ghostEpoch++;
     this.clearGhostText();
     this.lookup$.next(word);
   }

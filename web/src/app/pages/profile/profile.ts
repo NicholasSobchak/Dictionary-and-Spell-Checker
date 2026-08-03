@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { Auth } from '../../services/auth';
 
 type EditField = 'name' | 'email' | null;
@@ -11,6 +12,7 @@ type EditField = 'name' | 'email' | null;
 })
 export class Profile {
   private auth = inject(Auth);
+  private router = inject(Router);
 
   user = this.auth.user;
 
@@ -57,5 +59,9 @@ export class Profile {
           this.error.set(err?.error?.error ?? 'Failed to update profile.');
         },
       });
+  }
+
+  logout(): void {
+    this.auth.logout().subscribe(() => this.router.navigate(['/login']));
   }
 }

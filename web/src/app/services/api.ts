@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 import {
   WordResponse,
   WordNotFound,
@@ -73,25 +73,29 @@ export class Api {
       .set('email', email)
       .set('password', password)
       .set('displayName', displayName);
-    return this.http.post<AuthUser>('/api/auth/signup', body);
+    return this.http.post<AuthUser>('/api/auth/signup', body).pipe(timeout(15000));
   }
 
   login(email: string, password: string): Observable<AuthResponse> {
     const body = new HttpParams().set('email', email).set('password', password);
-    return this.http.post<AuthResponse>('/api/auth/login', body);
+    return this.http.post<AuthResponse>('/api/auth/login', body).pipe(timeout(15000));
   }
 
   logout(token: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      '/api/auth/logout',
-      new HttpParams().set('token', token)
-    );
+    return this.http
+      .post<{ message: string }>(
+        '/api/auth/logout',
+        new HttpParams().set('token', token)
+      )
+      .pipe(timeout(15000));
   }
 
   me(token: string): Observable<AuthUser> {
-    return this.http.get<AuthUser>('/api/auth/me', {
-      params: new HttpParams().set('token', token),
-    });
+    return this.http
+      .get<AuthUser>('/api/auth/me', {
+        params: new HttpParams().set('token', token),
+      })
+      .pipe(timeout(15000));
   }
 
   updateProfile(token: string, displayName: string, email: string): Observable<AuthUser> {
@@ -99,6 +103,6 @@ export class Api {
       .set('token', token)
       .set('displayName', displayName)
       .set('email', email);
-    return this.http.post<AuthUser>('/api/auth/update', body);
+    return this.http.post<AuthUser>('/api/auth/update', body).pipe(timeout(15000));
   }
 }

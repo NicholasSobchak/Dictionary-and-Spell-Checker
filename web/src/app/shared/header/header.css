@@ -1,10 +1,9 @@
 .site-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   height: 72px;
   background: #000;
   border-bottom: 1px solid var(--edge);
-  z-index: 20;
+  z-index: 10;
 }
 
 .hamburger {
