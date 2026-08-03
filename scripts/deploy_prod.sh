@@ -198,7 +198,6 @@ free_port_8080() {
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y psmisc >/dev/null 2>&1 || true
   sudo fuser -k 8080/tcp >/dev/null 2>&1 || true
 }
-free_port_8080
 
 sudo cp /etc/systemd/system/quickquill-backend.service /tmp/backend.bak 2>/dev/null || true
 
@@ -224,10 +223,6 @@ RestartSec=3
 WantedBy=multi-user.target
 UNIT
 
-sudo systemctl daemon-reload
-sudo systemctl enable quickquill-backend >/dev/null 2>&1 || true
-sudo systemctl restart quickquill-backend
-
 backend_fail() {
   echo "ERROR: $*" >&2
   echo "=== systemd status ==="
@@ -245,18 +240,61 @@ backend_fail() {
   exit 1
 }
 
+sudo systemctl daemon-reload
+sudo systemctl enable quickquill-backend >/dev/null 2>&1 || true
+
+# Record the PID of the currently-running backend so we can verify a moment
+# later that the new JAR actually took over (fuser -k below can fail silently).
+OLD_PID=$(sudo systemctl show -p MainPID --value quickquill-backend 2>/dev/null || echo 0)
+
+# Free the port NOW (after the unit is rewritten) and let systemd start the new
+# JAR exactly once. Killing the old process triggers Restart=always, which boots
+# the new JAR with the fresh unit. "start" is a no-op if that restart already
+# happened, so we avoid a second, unnecessary (and slow) reboot of the new JAR.
+free_port_8080
+sudo systemctl start quickquill-backend 2>/dev/null \
+  || backend_fail "systemctl start failed; see journal below"
+
+# If the old process is somehow still the one running (fuser -k failed), force
+# a restart so the health checks below genuinely exercise the NEW JAR.
+NEW_PID=$(sudo systemctl show -p MainPID --value quickquill-backend 2>/dev/null || echo 0)
+if [ -n "$OLD_PID" ] && [ "$OLD_PID" != "0" ] && [ "$OLD_PID" = "$NEW_PID" ]; then
+  echo "WARNING: backend PID unchanged after port free; forcing restart"
+  sudo systemctl restart quickquill-backend || backend_fail "forced restart failed"
+fi
+
 # The new JAR must actually own port 8080; if a stale process/container
-# still holds it, the API below would be served by the old backend.
+# still holds it, the API below would be served by the old backend. Boot time
+# on this VPS is very variable (23s warm to 190s+ cold), so wait up to 5
+# minutes, but fail fast if the service itself stops being active.
 JAVA_ON_8080=""
-for i in $(seq 1 24); do
+# NRestarts is cumulative since the last EXPLICIT start (a no-op start does
+# not reset it), so baseline it here and only react to restarts that happen
+# while we wait — otherwise historical restarts could falsely fail a healthy,
+# slow boot.
+RESTART_BASE=$(sudo systemctl show -p NRestarts --value quickquill-backend 2>/dev/null || echo 0)
+for i in $(seq 1 60); do
+  if ! sudo systemctl is-active --quiet quickquill-backend; then
+    backend_fail "backend service stopped being active during boot wait (see journal below)"
+  fi
+  # Fail fast if the JVM is crash-looping (e.g. APPLICATION FAILED TO START):
+  # Restart=always respawns it every few seconds, so is-active never flips.
+  RESTARTS=$(sudo systemctl show -p NRestarts --value quickquill-backend 2>/dev/null || echo 0)
+  if [ "$((RESTARTS - RESTART_BASE))" -ge 5 ]; then
+    backend_fail "backend crash-looping ($((RESTARTS - RESTART_BASE)) restarts while waiting; see journal below)"
+  fi
   INFO=$(sudo ss -ltnp 'sport = :8080' 2>/dev/null || true)
   if echo "$INFO" | grep -q 'java'; then
     JAVA_ON_8080=yes
     break
   fi
+  # Progress line so the deploy log is not silent for minutes.
+  if [ $((i % 6)) -eq 0 ]; then
+    echo "  waiting for backend to bind port 8080... $((i * 5))s elapsed"
+  fi
   sleep 5
 done
-[ -n "$JAVA_ON_8080" ] || backend_fail "backend did not bind port 8080 after restart (new JAR likely crashed; see journal below): $(sudo ss -ltnp 'sport = :8080' 2>/dev/null || true)"
+[ -n "$JAVA_ON_8080" ] || backend_fail "backend did not bind port 8080 within 5 minutes (new JAR likely crashed; see journal below): $(sudo ss -ltnp 'sport = :8080' 2>/dev/null || true)"
 
 WORD_CODE=""
 for i in $(seq 1 36); do
