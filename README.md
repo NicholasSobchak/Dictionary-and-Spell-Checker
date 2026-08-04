@@ -8,7 +8,7 @@
   <a href="https://quickquill.ink"><img src="https://img.shields.io/badge/website-quickquill.ink-black" alt="Website"></a>
 </p>
 
-#
+---
 ### Description
 
 QuickQuill is a full-stack dictionary and spell-check application. The core engine is written in C++ (SQLite-backed, trie-based autocomplete), exposed to a Spring Boot backend via Java's Foreign Function & Memory API (Panama FFM). The frontend is Angular.
@@ -52,7 +52,7 @@ Import complete:
 
 > The C++ engine is compiled into `libquickquill_engine.so` with a flat C ABI (`extern "C"`). Spring Boot calls it through Panama FFM — no JNI or C glue code needed.
 
-#
+---
 ## Setting Up / Building this Project Locally
 
 ### Prerequisites
@@ -97,11 +97,8 @@ Then place `dictionary.db` in the project root.
 │       ├── model/          # JPA entities (User, Session, Note)
 │       ├── repository/     # Spring Data repos
 │       └── service/        # AuthService, etc.
-├── web/             
-│   └── src/app/    
-├── docker-compose.yml
-├── .env
-└── .gitignore
+└── web/             
+    └── src/app/    
 ```
 
 ### Configuration
@@ -214,7 +211,7 @@ cmake --build build
 ./build/engine/tests/runTests
 ```
 
-#
+---
 ## API
 
 ### Dictionary
@@ -276,29 +273,7 @@ Response shape for `/api/word/<word>`:
 }
 ```
 
-#
-#
-## Deploy Notes
-
-- The backend uses `spring.jpa.hibernate.ddl-auto=update`, so new tables (`notes`,
-  `search_history`, `suggested_words`) are **auto-created on restart** — no manual
-  migration is needed.
-- `ddl-auto=update` **never drops tables**. On databases created before the
-  per-user search-history feature was enabled, the old `search_history` table is
-  simply left in place (empty) and reused; you do not need to drop it.
-- Deployment is fully Dockerized. On every push to `main`, the `deploy.yml`
-  workflow builds and pushes two images to Docker Hub
-  (`<user>/quickquill-backend` and `<user>/quickquill-frontend`, tagged `latest`
-  and with the git SHA), then `scripts/deploy_docker.sh` runs on the VPS to
-  pull those exact images and start `docker-compose.prod.yml`. The stack uses
-  host networking: nginx owns 80/443 and the backend owns 8080, talking to the
-  host PostgreSQL over `localhost` (user data stays in the host database).
-  Failed health checks roll back to the previous image tag.
-- The workflow needs these GitHub secrets: `SSH_HOST`, `SSH_USERNAME`,
-  `SSH_PRIVATE_KEY`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`,
-  `DOCKER_USERNAME` and `DOCKER_PASSWORD` (Docker Hub account + access token).
-
-#
+---
 ## Academia Use & Data Attribution
 
 _This project is developed for academic and educational purposes. QuickQuill is an independent project and has no affiliation with any organizations._ _All marks remain the property of their respective owners._
