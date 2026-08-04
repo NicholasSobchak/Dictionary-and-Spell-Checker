@@ -40,7 +40,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.backend
+          file: Dockerfile
+          target: backend
           push: true
           tags: |
             ${{ env.IMAGE_BACKEND }}:latest
@@ -52,7 +53,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.frontend
+          file: Dockerfile
+          target: frontend
           push: true
           tags: |
             ${{ env.IMAGE_FRONTEND }}:latest

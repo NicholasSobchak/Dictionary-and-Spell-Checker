@@ -1,21 +1,36 @@
-# Multi-stage Dockerfile: build C++ engine + Spring Boot JAR + Angular frontend
+# QuickQuill single multi-stage Dockerfile.
+#
+# Produces two images from the same file via --target:
+#   * backend  - Spring Boot JAR + C++ engine libquickquill_engine.so
+#   * frontend - nginx serving the built Angular app
+#
+# Images are built and pushed by .github/workflows/deploy.yml, then pulled on
+# the VPS (see docker-compose.prod.yml and scripts/deploy_docker.sh).
 
-### Frontend build stage
-FROM node:20-slim AS frontend
+### Stage 1: Angular frontend build
+FROM node:20-slim AS frontend-build
 WORKDIR /web
 COPY web/package*.json ./
-RUN npm install
+RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-### C++ engine build stage
-FROM debian:bookworm-slim AS engine
+### Stage 2: nginx runtime image (target: frontend)
+FROM nginx:stable-alpine AS frontend
+COPY nginx/docker.conf /etc/nginx/conf.d/default.conf
+COPY --from=frontend-build /web/dist/browser /usr/share/nginx/html
+
+EXPOSE 80 443
+
+### Stage 3: C++ engine build
+FROM debian:bookworm-slim AS engine-build
 RUN apt-get update \
   && apt-get install -y --no-install-recommends build-essential cmake git ca-certificates curl pkg-config unzip tar zip python3 \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-RUN git clone --depth=1 https://github.com/microsoft/vcpkg.git /src/vcpkg \
+# Pin vcpkg to the same revision CI uses for reproducible builds.
+RUN git clone --depth=1 --branch 2025.04.09 https://github.com/microsoft/vcpkg.git /src/vcpkg \
   && /src/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 COPY . /src/
@@ -26,20 +41,19 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
      -DVCPKG_TARGET_TRIPLET=x64-linux \
   && cmake --build build --target quickquill_engine -j$(nproc)
 
-### Spring Boot build stage
-FROM eclipse-temurin:22-jdk AS backend
+### Stage 4: Spring Boot build
+FROM eclipse-temurin:22-jdk AS backend-build
 WORKDIR /src
 COPY studio/ ./
-COPY --from=engine /src/build/engine/src/libquickquill_engine.so /src/build/engine/src/libquickquill_engine.so
+COPY --from=engine-build /src/build/engine/src/libquickquill_engine.so /src/build/engine/src/libquickquill_engine.so
 RUN ./gradlew bootJar
 
-### Final runtime image
-FROM eclipse-temurin:22-jre
+### Stage 5: backend runtime image (target: backend)
+FROM eclipse-temurin:22-jre AS backend
 WORKDIR /app
 
-COPY --from=backend /src/build/libs/*.jar ./app.jar
-COPY --from=engine /src/build/engine/src/libquickquill_engine.so ./libquickquill_engine.so
-COPY --from=frontend /web/dist/browser ./web/dist/browser
+COPY --from=backend-build /src/build/libs/*.jar ./app.jar
+COPY --from=engine-build /src/build/engine/src/libquickquill_engine.so ./libquickquill_engine.so
 
 EXPOSE 8080
 CMD ["java", "--enable-native-access=ALL-UNNAMED", "-Djava.library.path=.", "-jar", "app.jar", "--quickquill.dictionary-path=/app/dictionary.db"]
