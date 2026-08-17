@@ -57,7 +57,7 @@ Import complete:
 
 ### Prerequisites
 
-  - Java (22+)
+  - Java (25+)
   - CMake (3.16+)
   - vcpkg (latest) 
   - Node.js (20+)
@@ -79,7 +79,7 @@ Then place `dictionary.db` in the project root.
   - **Database:** PostgreSQL 16 (user data), SQLite (dictionary)
   - **Frontend:** Angular 21, RxJS, TypeScript
   - **Tests:** Catch2 (C++), JUnit (Java)
-  - **Deploy:** Docker, docker-compose, nginx 
+  - **Deploy:** Docker, compose, nginx 
 
 ### Project Layout
 ```
@@ -118,7 +118,7 @@ spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 ```
 
-A `.env` file in the project root is loaded automatically by docker-compose. For local development, create one:
+A `.env` file in the project root is loaded automatically by compose. For local development, create one:
 
 ```bash
 DB_URL=jdbc:postgresql://localhost:5432/quickquill
@@ -126,18 +126,13 @@ DB_USERNAME=quickquill
 DB_PASSWORD=quickquill
 ```
 
-**Before running locally**, create the database:
+**Before running locally**, start the database with Docker Compose:
 
 ```bash
-createdb quickquill
+docker compose up -d postgres
 ```
 
-Then start the backend:
-
-```bash
-cd studio
-./gradlew bootRun
-```
+This creates the `quickquill` database and user automatically.
 
 ### Code Formatting (Pre-commit Hook)
 To have consistent formatting across the project, configure `pre-commit`. It's a hook that automatically runs `clang-format` on your staged C++ files before each commit.
@@ -158,14 +153,14 @@ CI uses `clang-format-17` by default.
 
 ### Build
 
-#### 1) Clone vcpkg
+#### Clone vcpkg
 
 ```bash
 git clone --depth=1 https://github.com/microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh
 ```
 
-#### 2) Build C++ Engine
+#### Build C++ Engine
 
 ```bash
 cmake -S . -B build \
@@ -174,14 +169,14 @@ cmake -S . -B build \
 cmake --build build 
 ```
 
-#### 3) Build Spring Boot Backend
+#### Build Spring Boot Backend
 
 ```bash
 cd studio
 ./gradlew bootJar
 ```
 
-#### 4) Build Angular Frontend
+#### Build Angular Frontend
 
 ```bash
 cd web
