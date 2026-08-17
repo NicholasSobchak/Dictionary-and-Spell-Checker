@@ -76,7 +76,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml,scripts/deploy_docker.sh"
+          source: "compose.prod.yml,scripts/deploy_docker.sh"
           target: /var/www/quickquill
           strip_components: 0
 

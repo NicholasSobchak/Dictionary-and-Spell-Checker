@@ -10,7 +10,7 @@
 # - DB credentials are injected at deploy time from GitHub secrets via the
 #   compose environment (never committed).
 #
-# Deployment:  sudo DOCKER_TAG=... docker compose -f docker-compose.prod.yml up -d
+# Deployment:  sudo DOCKER_TAG=... docker compose -f compose.prod.yml up -d
 
 name: quickquill
 

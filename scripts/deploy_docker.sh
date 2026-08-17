@@ -29,10 +29,10 @@ die() { echo "ERROR: $*" >&2; exit 1; }
 DOCKER_TAG="${DOCKER_TAG:-latest}"
 DOCKER_IMAGE_BACKEND="${DOCKER_IMAGE_BACKEND:-nicksobchak/quickquill-backend}"
 DOCKER_IMAGE_FRONTEND="${DOCKER_IMAGE_FRONTEND:-nicksobchak/quickquill-frontend}"
-COMPOSE_FILE="$APP_DIR/docker-compose.prod.yml"
+COMPOSE_FILE="$APP_DIR/compose.prod.yml"
 PREV_TAG_FILE=/tmp/qq_prev_tag
 
-[ -f "$COMPOSE_FILE" ] || die "docker-compose.prod.yml not found in $APP_DIR"
+[ -f "$COMPOSE_FILE" ] || die "compose.prod.yml not found in $APP_DIR"
 
 # COMPOSE runs docker compose as root with the variables the compose file needs
 # explicitly passed: sudo strips the caller's environment by default, which
@@ -159,7 +159,7 @@ sudo systemctl stop quickquill-backend 2>/dev/null || true
 sudo systemctl disable quickquill-backend 2>/dev/null || true
 sudo systemctl stop nginx 2>/dev/null || true
 sudo systemctl disable nginx 2>/dev/null || true
-sudo docker compose -f "$APP_DIR/docker-compose.yml" down 2>/dev/null || true
+sudo docker compose -f "$APP_DIR/compose.yml" down 2>/dev/null || true
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y psmisc >/dev/null 2>&1 || true
 sudo fuser -k 80/tcp 443/tcp 8080/tcp >/dev/null 2>&1 || true
 

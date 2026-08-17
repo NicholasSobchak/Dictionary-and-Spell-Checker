@@ -48,11 +48,10 @@ services:
       # NGINX_CONF selects the site config: default.conf (production HTTPS, needs
       # Let's Encrypt certs) or dev.conf (plain HTTP for local dev).
       # :z same SELinux relabel as above.
-      - ./nginx/${NGINX_CONF:-default.conf}:/etc/nginx/conf.d/default.conf:ro,z
+      - ./nginx/${NGINX_CONF:-dev.conf}:/etc/nginx/conf.d/default.conf:ro,z
       # :z required so nginx can read the built Angular files under SELinux.
       - ./web/dist/browser:/usr/share/nginx/html:ro,z
       - nginx_data:/var/cache/nginx
-      - /etc/letsencrypt:/etc/letsencrypt:ro
 
 volumes:
   nginx_data:

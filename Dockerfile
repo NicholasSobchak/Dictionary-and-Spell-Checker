@@ -5,7 +5,7 @@
 #   * frontend - nginx serving the built Angular app
 #
 # Images are built and pushed by .github/workflows/deploy.yml, then pulled on
-# the VPS (see docker-compose.prod.yml and scripts/deploy_docker.sh).
+# the VPS (see compose.prod.yml and scripts/deploy_docker.sh).
 
 ### Stage 1: Angular frontend build
 FROM node:20-slim AS frontend-build

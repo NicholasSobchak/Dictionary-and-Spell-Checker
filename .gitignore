@@ -8,7 +8,7 @@ vcpkg_installed/
 web/node_modules/
 web/dist/
 web/.angular/
-docker-compose.override.yml
+compose.override.yml
 Testing/
 
 # Java / Spring Boot
