@@ -1,0 +1,38 @@
+.list {
+  margin: 0;
+  padding-left: 18px;
+  list-style-position: outside;
+}
+
+.extra {
+  display: none;
+}
+
+.list.show-all .extra {
+  display: list-item;
+}
+
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px auto 0;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-family: 'Times New Roman', Times, serif;
+  text-transform: none;
+  letter-spacing: 0.5px;
+}
+
+.toggle-btn .arrow {
+  font-family: Arial, sans-serif;
+}
+
+.toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

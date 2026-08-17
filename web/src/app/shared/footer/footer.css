@@ -1,0 +1,47 @@
+.site-footer {
+  background: #000;
+  border-top: 1px solid var(--edge);
+  padding: 20px;
+  margin-top: auto;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.social-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.github-link,
+.linkedin-link {
+  display: inline-block;
+  color: #7a7a7a;
+  transition: color 0.2s;
+}
+
+.github-link:hover,
+.linkedin-link:hover {
+  color: var(--ink);
+}
+
+.github-icon,
+.linkedin-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.footer-disclaimer {
+  color: #7a7a7a;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}

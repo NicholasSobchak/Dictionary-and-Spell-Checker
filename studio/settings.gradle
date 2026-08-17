@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        // Fallback mirror: Maven Central (Fastly) intermittently 403s
+        // GitHub Actions runner IPs, which breaks plugin classpath resolution.
+        maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2/') }
+    }
+}
+
+rootProject.name = 'studio'

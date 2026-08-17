@@ -1,0 +1,201 @@
+:root {
+  --ink: #ffffff;
+  --muted: #b6b6b6;
+  --edge: #2a2a2a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 17px;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+  background-color: #000000;
+  background-image:
+    radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0) 8%,
+      rgba(0, 0, 0, 0.9) 30%,
+      rgba(0, 0, 0, 0.97) 55%,
+      rgba(0, 0, 0, 1) 72%,
+      rgba(0, 0, 0, 1) 100%
+    ),
+    linear-gradient(
+      to right,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 0) 12%,
+      rgba(0, 0, 0, 0) 88%,
+      rgba(0, 0, 0, 1) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 0) 14%,
+      rgba(0, 0, 0, 0) 86%,
+      rgba(0, 0, 0, 1) 100%
+    ),
+    linear-gradient(rgba(0, 0, 0, 0.99), rgba(0, 0, 0, 0.99)),
+    url('/assets/school_backdrop.jpg');
+  background-size:
+    260% 260%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    contain;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position:
+    center center,
+    center center,
+    center center,
+    center center,
+    center top;
+  background-attachment: fixed, fixed, fixed, fixed, fixed;
+  background-blend-mode: multiply, multiply, multiply, multiply, normal;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll, scroll, scroll, scroll, scroll;
+  }
+}
+
+app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+app-header {
+  display: block;
+  width: 100%;
+}
+
+app-footer {
+  display: block;
+  width: 100%;
+}
+
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 88px 20px 80px;
+  flex: 1 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.card::before {
+  display: none;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-left: -10px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 0;
+  border: none;
+  margin: 4px 6px 0 0;
+  font-size: 15px;
+  font-family: 'Times New Roman', Times, serif;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+}
+
+.chip:hover {
+  text-decoration: underline;
+}
+
+.suggested-chip {
+  padding-left: 0;
+  font-size: 15px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-right: 12px;
+}
+
+.line-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.page-title-line {
+  display: block;
+  width: 100%;
+  max-height: 85px;
+  object-fit: contain;
+  object-position: center center;
+  opacity: 0.8;
+  margin-top: -25px;
+  margin-bottom: 16px;
+  transform: rotate(180deg);
+  mix-blend-mode: screen;
+}
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  margin-top: -4px;
+  margin-bottom: 8px;
+}
+
+.back-button {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  padding: 8px 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 14px;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: -10px;
+}
+
+.clear-history-button {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  padding: 8px 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 14px;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  text-decoration: underline;
+}

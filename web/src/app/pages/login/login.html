@@ -1,0 +1,21 @@
+<div class="login-page">
+  <div class="auth-card">
+    <img src="/assets/quill.png" alt="quill" class="quill">
+    <h1 class="auth-title">Login</h1>
+    <p class="auth-subtitle">Welcome back to your account</p>
+    <form class="auth-form" (submit)="onSubmit($event, emailInput, passwordInput)">
+      <label class="auth-label" for="login-email">Email</label>
+      <input id="login-email" class="auth-input" type="email" name="email" #emailInput placeholder="you@example.com" />
+      <label class="auth-label" for="login-password">Password</label>
+      <input id="login-password" class="auth-input" type="password" name="password" #passwordInput placeholder="Enter your password" />
+      <button type="submit" class="auth-submit" [disabled]="loading()">Login</button>
+      @if (errorMessage()) {
+        <p class="auth-error">{{ errorMessage() }}</p>
+      }
+    </form>
+    <p class="auth-alt">
+      Don't have an account?
+      <a routerLink="/signup" class="auth-link">Sign up</a>
+    </p>
+  </div>
+</div>

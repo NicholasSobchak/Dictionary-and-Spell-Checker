@@ -1,44 +1,59 @@
-# Multi-stage Dockerfile: build the C++ backend inside the image and produce a small runtime image
+# QuickQuill single multi-stage Dockerfile.
+#
+# Produces two images from the same file via --target:
+#   * backend  - Spring Boot JAR + C++ engine libquickquill_engine.so
+#   * frontend - nginx serving the built Angular app
+#
+# Images are built and pushed by .github/workflows/deploy.yml, then pulled on
+# the VPS (see compose.prod.yml and scripts/deploy_docker.sh).
 
-### Frontend build stage
-FROM node:20-slim AS frontend
+### Stage 1: Angular frontend build
+FROM node:20-slim AS frontend-build
 WORKDIR /web
 COPY web/package*.json ./
-RUN npm install
+RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-### Builder stage
-FROM debian:bookworm-slim AS builder
+### Stage 2: nginx runtime image (target: frontend)
+FROM nginx:stable-alpine AS frontend
+COPY nginx/docker.conf /etc/nginx/conf.d/default.conf
+COPY --from=frontend-build /web/dist/browser /usr/share/nginx/html
+
+EXPOSE 80 443
+
+### Stage 3: C++ engine build
+FROM debian:bookworm-slim AS engine-build
 RUN apt-get update \
   && apt-get install -y --no-install-recommends build-essential cmake git ca-certificates curl pkg-config unzip tar zip python3 \
   && rm -rf /var/lib/apt/lists/*
 
-# Install vcpkg and bootstrap (rarely changes)
 WORKDIR /src
-RUN git clone --depth=1 https://github.com/microsoft/vcpkg.git /src/vcpkg \
+# Pin vcpkg to the same revision CI uses for reproducible builds.
+RUN git clone --depth=1 --branch 2025.04.09 https://github.com/microsoft/vcpkg.git /src/vcpkg \
   && /src/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
-# Copy source and install dependencies (cached until vcpkg.json changes)
 COPY . /src/
 RUN /src/vcpkg/vcpkg install --triplet x64-linux
 
-# Build (invalidated on code changes, but deps layer above is cached)
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
      -DCMAKE_TOOLCHAIN_FILE=/src/vcpkg/scripts/buildsystems/vcpkg.cmake \
      -DVCPKG_TARGET_TRIPLET=x64-linux \
-  && cmake --build build -j$(nproc)
+  && cmake --build build --target quickquill_engine -j$(nproc)
 
-### Final runtime image
-FROM debian:bookworm-slim
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates libstdc++6 curl \
-  && rm -rf /var/lib/apt/lists/*
+### Stage 4: Spring Boot build
+FROM eclipse-temurin:22-jdk AS backend-build
+WORKDIR /src
+COPY studio/ ./
+COPY --from=engine-build /src/build/engine/src/libquickquill_engine.so /src/build/engine/src/libquickquill_engine.so
+RUN ./gradlew bootJar
+
+### Stage 5: backend runtime image (target: backend)
+FROM eclipse-temurin:22-jre AS backend
 WORKDIR /app
-# Copy only the built binary and config; do NOT copy dictionary.db (mount at runtime)
-COPY --from=builder /src/build/src/dict_crow ./dict_crow
-RUN printf '{"database_path":"dictionary.db","server_port":8080,"redis_host":"redis","redis_port":6379}\n' > config.json
-COPY --from=frontend /web/dist ./web/dist
+
+COPY --from=backend-build /src/build/libs/*.jar ./app.jar
+COPY --from=engine-build /src/build/engine/src/libquickquill_engine.so ./libquickquill_engine.so
 
 EXPOSE 8080
-CMD ["./dict_crow"]
+CMD ["java", "--enable-native-access=ALL-UNNAMED", "-Djava.library.path=.", "-jar", "app.jar", "--quickquill.dictionary-path=/app/dictionary.db"]

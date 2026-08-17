@@ -2,22 +2,22 @@
 
 <h4 align="center">A Quick Lookup Dictionary at your service.</h4>
 <p align="center">
-  <a href="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/ci.yml"><img src="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/ci.yml/badge.svg" alt="Build and Test"></a>
-  <a href="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/deploy.yml"><img src="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a>
-  <a href="https://github.com/NicholasSobchak/QuickQuill-Dictionary-SpellChecker/releases"><img src="https://img.shields.io/github/v/release/NicholasSobchak/QuickQuill-Dictionary-SpellChecker?color=purple&cachebust=1" alt="Release">
+  <a href="https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker/actions/workflows/ci.yml"><img src="https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker/actions/workflows/ci.yml/badge.svg" alt="Build and Test"></a>
+  <a href="https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker/actions/workflows/deploy.yml"><img src="https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker/actions/workflows/deploy.yml/badge.svg" alt="Deploy"></a>
+  <a href="https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker/releases"><img src="https://img.shields.io/github/v/release/nickczak/QuickQuill-Dictionary-SpellChecker?color=purple&cachebust=1" alt="Release">
   <a href="https://quickquill.ink"><img src="https://img.shields.io/badge/website-quickquill.ink-black" alt="Website"></a>
 </p>
 
-#
+---
 ### Description
 
-QuickQuill is a C++ dictionary + spell-check backend with a lightweight web UI.
-It supports fast word lookup, spell correction, and rich dictionary data (definitions, examples, synonyms, antonyms, forms, etymology).
+QuickQuill is a full-stack dictionary and spell-check application. The core engine is written in C++ (SQLite-backed, trie-based autocomplete), exposed to a Spring Boot backend via Java's Foreign Function & Memory API (Panama FFM). The frontend is Angular.
 
 ### Features
   - Spellchecking (Did you mean ...?)
   - Similar search
   - Word suggestion (Synonym selection)
+  - Autocomplete with ghost text
   - Lightweight frontend
   - Dictionary data including:
     - Multi-sense entries with POS and definitions
@@ -41,17 +41,28 @@ Import complete:
 ```
 
 ### Technical Highlights
-  - Trie-based lookup autocomplete behavior
-  - HTTP RESTful API via Crow 
-  - Thread management for SQL and cache access using mutex and thread local
-  - In memory caching 
-  - Redis caching (implementation)
-  - Crow logging
-  - Dockerized deployment using docker-compose
-  - SQL database with rich Wiktionary extract (JSONL) 
+  - C++17 engine with trie-based autocomplete and thread-local SQLite connections
+  - Java FFM (Foreign Function & Memory API) for native calls — no JNI
+  - Spring Boot REST API with Spring Data JPA + PostgreSQL for user auth
+  - BCrypt password hashing with session token management
+  - Angular 21 frontend with RxJS debounced search streams
+  - In-memory LRU caching with thread-safe access
+  - Dockerized deployment (multi-stage: C++ engine + Spring Boot + Angular + PostgreSQL)
+  - Catch2 for C++ tests
 
-#
+> The C++ engine is compiled into `libquickquill_engine.so` with a flat C ABI (`extern "C"`). Spring Boot calls it through Panama FFM — no JNI or C glue code needed.
+
+---
 ## Setting Up / Building this Project Locally
+
+### Prerequisites
+
+  - Java (25+)
+  - CMake (3.16+)
+  - vcpkg (latest) 
+  - Node.js (20+)
+  - Clang-format (17)
+  - PostgreSQL (16+)
 
 ### Database Download
 To run this with the full prebuilt database, download:
@@ -62,53 +73,66 @@ https://www.dropbox.com/home/dictionary-db-sql/dictionary-db?preview=dictionary.
 
 Then place `dictionary.db` in the project root.
 
-### This Project Uses
-  - C++17
-  - python3
-  - [SQLite3](https://sqlite.org/cintro.html) 
-  - [Crow (HTTP)](https://crowcpp.org/master/)
-  - [Catch2](https://github.com/catchorg/Catch2)
-  - [CMake](https://cmake.org/documentation/)
-  - [nlohmann/json](https://json.nlohmann.me/)
-  - [Vite](https://vite.dev/) (Node.js)
-  - clang-tidy & clang-format
-  - [Docker](https://docs.docker.com/manuals/)
-  - [nginx](https://nginx.org/en/docs/)
-  - redis-plus-plus (optional, for caching)
-> Check out dependencies in vcpkg.json
+### Tech Stack
+  - **Backend:** Java 22, Spring Boot 4.1, Spring Data JPA, Spring Security Crypto, Foreign Function & Memory API (Panama FFM)
+  - **Engine:** C++17, SQLite3, nlohmann/json, CMake, vcpkg
+  - **Database:** PostgreSQL 16 (user data), SQLite (dictionary)
+  - **Frontend:** Angular 21, RxJS, TypeScript
+  - **Tests:** Catch2 (C++), JUnit (Java)
+  - **Deploy:** Docker, compose, nginx 
 
 ### Project Layout
 ```
 .
-├── src/
-│   ├── app/
-│   ├── http/
-│   ├── core/
-│   └── data/
-├── tests/
-│   ├── unit/
-│   └── integration/
-├── utils/
-│   ├── dct/
-│   └── tests/
-└── web/
-    ├── public/assets/
-    └── src/
-
+├── engine/                 
+│   ├── native/            
+│   ├── include/          
+│   ├── src/             
+│   └── tests/          
+├── studio/            
+│   └── src/main/java/com/quickquill/studio/
+│       ├── config/
+│       ├── controller/     # REST endpoints
+│       ├── engine/         # FFM bridge to C++
+│       ├── model/          # JPA entities (User, Session, Note)
+│       ├── repository/     # Spring Data repos
+│       └── service/        # AuthService, etc.
+└── web/             
+    └── src/app/    
 ```
+
 ### Configuration
 
-QuickQuill uses `config.json` file, the config checks envars first and then the config.json, if both miss it will resort to default values.
+The Spring Boot backend uses `studio/src/main/resources/application.properties`. Sensible defaults are provided for local development, overridable via environment variables:
 
-Example `config.json`:
-```json
-{
-  "database_path": "dictionary.db",
-  "server_port": 80,
-  "redis_host": "redis",
-  "redis_port": 6379
-}
+```properties
+spring.application.name=studio
+server.port=8080
+quickquill.dictionary-path=../dictionary.db
+
+# PostgreSQL — override with DB_URL, DB_USERNAME, DB_PASSWORD
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/quickquill}
+spring.datasource.username=${DB_USERNAME:quickquill}
+spring.datasource.password=${DB_PASSWORD:quickquill}
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 ```
+
+A `.env` file in the project root is loaded automatically by compose. For local development, create one:
+
+```bash
+DB_URL=jdbc:postgresql://localhost:5432/quickquill
+DB_USERNAME=quickquill
+DB_PASSWORD=quickquill
+```
+
+**Before running locally**, start the database with Docker Compose:
+
+```bash
+docker compose up -d postgres
+```
+
+This creates the `quickquill` database and user automatically.
 
 ### Code Formatting (Pre-commit Hook)
 To have consistent formatting across the project, configure `pre-commit`. It's a hook that automatically runs `clang-format` on your staged C++ files before each commit.
@@ -129,80 +153,122 @@ CI uses `clang-format-17` by default.
 
 ### Build
 
-This project uses **CMake** + **vcpkg** (manifest mode via `vcpkg.json`) to fetch/build dependencies.
-
-#### 1) vcpkg
-
-On Fedora, the system vcpkg package only ships the binary; you still need the full repo for the CMake toolchain file:
+#### Clone vcpkg
 
 ```bash
-sudo dnf install vcpkg
-git clone https://github.com/microsoft/vcpkg ~/vcpkg
+git clone --depth=1 https://github.com/microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh
 ```
 
-On Fedora and macOS, use the same vcpkg flow:
-
-```bash
-git clone https://github.com/microsoft/vcpkg ~/vcpkg
-~/vcpkg/bootstrap-vcpkg.sh
-cmake -S . -B build \
-  -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build -j
-```
-
-#### 2) Configure + Build
-
-From the project root:
+#### Build C++ Engine
 
 ```bash
 cmake -S . -B build \
-  -DCMAKE_TOOLCHAIN_FILE=~/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build build -j
+  -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
+  -DVCPKG_TARGET_TRIPLET=x64-linux
+cmake --build build 
 ```
 
-> On Fedora 44+, if `redis-plus-plus` fails to build due to GCC `-Werror=maybe-uninitialized`, remove it from `vcpkg.json` — it's unused in the build.
-
-### Run
+#### Build Spring Boot Backend
 
 ```bash
-./build/src/dict // Console test mode
-./build/src/dict_crow // Web server
+cd studio
+./gradlew bootJar
 ```
 
-Open:
-- Frontend (Vite dev server): `cd web && npm install && npm run dev` then open http://localhost:5173
-- Backend API (Crow): http://localhost:8080 (default) — keep this running so the frontend can load data
+#### Build Angular Frontend
 
-#
+```bash
+cd web
+npm install
+npm run build
+```
+
+### Run (Local Development)
+
+**Terminal 1 — Spring Boot backend:**
+```bash
+cd studio
+./gradlew bootRun
+```
+
+**Terminal 2 — Angular frontend:**
+```bash
+cd web
+npm start
+```
+
+### Run Tests
+
+**C++ tests (Catch2):**
+```bash
+cmake --build build 
+./build/engine/tests/runTests
+```
+
+---
 ## API
 
-```http
-GET /api/word/<word>
-GET /api/suggest/<word>
-GET /api/synonym/<word>
-GET /api/autofill/<word>
-```
-Response shape:
+### Dictionary
 
+- `GET /api/word/<word>` — Dictionary lookup
+- `GET /api/suggest/<word>` — Spelling suggestions
+- `GET /api/synonym/<word>` — Synonym suggestions
+- `GET /api/autofill/<word>` — Autocomplete
+
+### Authentication
+
+- `POST /api/auth/signup?email=&password=&displayName=` — Register, returns `{ token, user }` (opens a session immediately)
+- `POST /api/auth/login?email=&password=` — Login, returns `{ token, user }`
+- `POST /api/auth/logout?token=` — Logout
+- `POST /api/auth/refresh?token=` — Extend session expiry (+7 days)
+- `POST /api/auth/change-password?token=&oldPassword=&newPassword=` — Change password
+- `POST /api/auth/delete-account?token=` — Delete account and all dependent rows
+- `GET /api/auth/me?token=` — Current user info
+
+### Notepad (per-user)
+
+- `GET /api/note?token=` — Fetch the user's note
+- `PUT /api/note?token=&content=` — Save the user's note
+
+### Search History (per-user)
+
+- `GET /api/search-history?token=` — List the user's search words (most recent first)
+- `POST /api/search-history?token=&word=` — Record a search
+- `DELETE /api/search-history?token=` — Clear the user's search history
+
+### Suggested Words (per-user)
+
+- `GET /api/suggested-words?token=` — List the user's suggested words (most recent first)
+- `POST /api/suggested-words/sync?token=&word=a&word=b` — Record many words at once (stored synonyms)
+- `DELETE /api/suggested-words?token=` — Clear the user's suggested words
+
+Response shape for `/api/word/<word>`:
 ```json
 {
-  "id": 123,
-  "lemma": "word",
-  "forms": [{ "form": "words", "tag": "plural" }],
+  "id": 4477,
+  "lemma": "hello",
+  "display_lemma": "hello",
+  "query": "hello",
+  "forms": [
+    { "form": "hellos", "tag": "plural" },
+    { "form": "helloed", "tag": "past" }
+  ],
   "senses": [
     {
-      "pos": "noun",
-      "definition": "...",
-      "examples": ["..."],
-      "synonyms": ["..."],
-      "antonyms": ["..."]
+      "pos": "intj",
+      "definition": "A greeting said when meeting someone.",
+      "examples": ["Hello, everyone."],
+      "synonyms": [],
+      "antonyms": []
     }
   ],
-  "etymology": ["..."]
+  "etymology": ["Hello (first attested in 1826), from holla, hollo..."],
+  "alternative_searches": []
 }
 ```
 
-#
+---
 ## Academia Use & Data Attribution
 
 _This project is developed for academic and educational purposes. QuickQuill is an independent project and has no affiliation with any organizations._ _All marks remain the property of their respective owners._

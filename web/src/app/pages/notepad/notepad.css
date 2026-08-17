@@ -1,0 +1,81 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.notepad-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+  padding: 40px 20px;
+}
+
+.notepad-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 760px;
+}
+
+.notepad-title {
+  font-size: 32px;
+  letter-spacing: 0.9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.notepad-subtitle {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+.notepad-textarea {
+  width: 100%;
+  min-height: 420px;
+  padding: 18px 20px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--edge);
+  border-radius: 0;
+  outline: none;
+  resize: vertical;
+  caret-color: var(--ink);
+}
+
+.notepad-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.notepad-textarea:focus {
+  border-color: var(--muted);
+}
+
+.notepad-status {
+  min-height: 24px;
+  margin-top: 10px;
+  font-size: 14px;
+  font-style: italic;
+  text-align: right;
+}
+
+.notepad-saving {
+  color: var(--muted);
+}
+
+.notepad-saved {
+  color: #7aa97a;
+}
+
+.notepad-error {
+  color: #b3565a;
+}

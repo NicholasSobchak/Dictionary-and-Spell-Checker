@@ -1,0 +1,22 @@
+<div class="notepad-page">
+  <div class="notepad-card">
+    <h1 class="notepad-title">Notepad</h1>
+    <p class="notepad-subtitle">Private notes — autosaved as you type</p>
+    <textarea
+      class="notepad-textarea"
+      [value]="content()"
+      (input)="onInput($event)"
+      placeholder="Start writing..."
+      spellcheck="false"
+    ></textarea>
+    <div class="notepad-status" aria-live="polite">
+      @if (loadError()) {
+        <span class="notepad-error">{{ loadError() }}</span>
+      } @else if (saveState() === 'saving') {
+        <span class="notepad-saving">Saving…</span>
+      } @else if (saveState() === 'saved') {
+        <span class="notepad-saved">Saved</span>
+      }
+    </div>
+  </div>
+</div>

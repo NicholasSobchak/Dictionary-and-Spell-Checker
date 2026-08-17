@@ -1,0 +1,57 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.0'
+	id 'io.spring.dependency-management' version '1.1.7'
+  id 'com.diffplug.spotless' version '6.25.0'
+}
+
+group = 'com.quickquill'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+repositories {
+	mavenCentral()
+	// Fallback mirror (see settings.gradle) for the intermittent Maven
+	// Central 403 on GitHub Actions runners.
+	maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2/') }
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	// Jackson 3 (JsonMapper) comes transitively via spring-boot-starter-jackson.
+	// Spring Boot 4 no longer auto-configures a Jackson 2 ObjectMapper bean.
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.security:spring-security-crypto'
+	runtimeOnly 'org.postgresql:postgresql'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+spotless {
+  java {
+    googleJavaFormat()
+  }
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+	systemProperty 'java.library.path', '../build/engine/src'
+	jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+bootRun {
+	systemProperty 'java.library.path', '../build/engine/src'
+	jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+// Only the bootable JAR is deployed; skip the plain JAR so artifact
+// globs never match more than one file.
+tasks.named('jar') {
+	enabled = false
+}

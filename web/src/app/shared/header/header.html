@@ -1,0 +1,55 @@
+<!-- src/app/shared/header/header.component.html -->
+<header class="site-header">
+  <button class="hamburger" (click)="drawerOpen = !drawerOpen" aria-label="Menu">
+    @if (drawerOpen) {
+      <span class="close-icon">&times;</span>
+    } @else {
+      <img class="quill-icon" src="/assets/quill.png" alt="Menu" />
+    }
+  </button>
+  <a class="profile-chip" [routerLink]="auth.user() ? '/profile' : '/login'"
+    (click)="drawerOpen = false" [title]="auth.user() ? 'Profile' : 'Log in'">
+    <svg class="profile-chip-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+    </svg>
+    @if (auth.user(); as user) {
+      <span>{{ user.displayName }}</span>
+    } @else {
+      <span>Log in</span>
+    }
+  </a>
+  @if (drawerOpen) {
+    <div class="drawer-overlay" (click)="drawerOpen = false"></div>
+  }
+  <nav class="drawer" [class.open]="drawerOpen">
+    <img class="drawer-logo" src="/assets/QuickQuill-logo.png" alt="QuickQuill" />
+
+  <!-- Dictionary Section -->
+    <div class="drawer-section">Dictionary</div>
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
+      class="nav-link" (click)="drawerOpen = false">Search</a>
+    <a routerLink="/suggestions" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Suggested Words</a>
+    <a routerLink="/search-history" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Search History</a>
+    
+  <!-- Studio Section -->
+    <div class="drawer-section">Studio</div>
+    <a routerLink="/notepad" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Notepad</a>
+
+  <!-- Account Section -->
+    <div class="drawer-section">
+      Account
+      @if (auth.user(); as user) {
+        <span class="nav-account-name">{{ user.displayName }}</span>
+      }
+    </div>
+    <a routerLink="/profile" routerLinkActive="active"
+      class="nav-link" (click)="drawerOpen = false">Profile</a>
+    @if (auth.user()) {
+      <button type="button" class="nav-link nav-button" (click)="logout()">Log out</button>
+    }
+  </nav>
+</header>

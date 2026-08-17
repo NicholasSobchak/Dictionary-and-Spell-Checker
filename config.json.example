@@ -1,6 +1,0 @@
-{
-  "database_path": "dictionary.db",
-  "server_port": 8080,
-  "redis_host": "redis",
-  "redis_port": 6379
-}

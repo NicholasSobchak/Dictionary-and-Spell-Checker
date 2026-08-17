@@ -1,0 +1,29 @@
+<div class="signup-page">
+  <div class="auth-card">
+    <img src="/assets/quill.png" alt="quill" class="quill">
+    <h1 class="auth-title">Sign Up</h1>
+    <p class="auth-subtitle">Create an account to get started</p>
+    <form class="auth-form" (submit)="onSubmit($event, emailInput, displayNameInput, passwordInput, confirmPasswordInput)">
+      <label class="auth-label" for="signup-displayname">Name</label>
+      <input id="signup-displayname" class="auth-input" type="text" name="displayName" #displayNameInput placeholder="Your name" />
+
+      <label class="auth-label" for="signup-email">Email</label>
+      <input id="signup-email" class="auth-input" type="email" name="email" #emailInput placeholder="you@example.com" />
+
+      <label class="auth-label" for="signup-password">Password</label>
+      <input id="signup-password" class="auth-input" type="password" name="password" #passwordInput placeholder="Enter a password" />
+
+      <label class="auth-label" for="signup-confirm">Confirm Password</label>
+      <input id="signup-confirm" class="auth-input" type="password" name="confirmPassword" #confirmPasswordInput placeholder="Repeat your password" />
+
+      <button type="submit" class="auth-submit" [disabled]="loading()">Create Account</button>
+      @if (errorMessage()) {
+        <p class="auth-error">{{ errorMessage() }}</p>
+      }
+    </form>
+    <p class="auth-alt">
+      Already have an account?
+      <a routerLink="/login" class="auth-link">Login</a>
+    </p>
+  </div>
+</div>

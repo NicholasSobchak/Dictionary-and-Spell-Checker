@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Add custom words and definitions to dictionary.db with dedup."""
 
+import argparse
 import sqlite3
 from pathlib import Path
 
@@ -29,7 +30,18 @@ def insert_sense_items(cur, table, col, sense_id, word_id, items, label):
             print(f"  Added {label}: {item[:60]}...")
 
 def main() -> None:
-    conn = sqlite3.connect(DB_PATH)
+    parser = argparse.ArgumentParser(
+        description="Add custom words and definitions to dictionary.db with dedup."
+    )
+    parser.add_argument(
+        "--db",
+        type=Path,
+        default=DB_PATH,
+        help="Path to dictionary.db",
+    )
+    args = parser.parse_args()
+
+    conn = sqlite3.connect(args.db)
     conn.execute("PRAGMA foreign_keys = ON;")
     cur = conn.cursor()
 

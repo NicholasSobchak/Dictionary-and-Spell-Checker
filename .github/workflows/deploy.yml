@@ -3,72 +3,103 @@ name: Deploy to Production
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Image names on Docker Hub (owned by the account in DOCKER_USERNAME).
+  IMAGE_BACKEND: ${{ secrets.DOCKER_USERNAME }}/quickquill-backend
+  IMAGE_FRONTEND: ${{ secrets.DOCKER_USERNAME }}/quickquill-frontend
 
 jobs:
-  deploy:
+  build-and-push:
+    name: Build and push Docker images
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
+          submodules: recursive
 
-      # Build the backend binary inside Docker (just for compilation — not pushed, not run on VPS).
-      # Using Debian bookworm ensures the binary links against the same glibc as the VPS.
-      - name: Build backend binary (Docker-based cross-compile)
-        run: |
-          DOCKER_BUILDKIT=1 docker build --target builder --output type=local,dest=/tmp/qq-build .
-          ls -lh /tmp/qq-build/src/build/src/dict_crow
-          cp /tmp/qq-build/src/build/src/dict_crow ./dict_crow
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
-      # Build the frontend
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
         with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build frontend
-        run: |
-          cd web
-          npm ci
-          npm run build
-
-      - name: Deploy on VPS
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Build and push backend image
+        uses: docker/build-push-action@v7
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
+          context: .
+          file: Dockerfile
+          target: backend
+          push: true
+          tags: |
+            ${{ env.IMAGE_BACKEND }}:latest
+            ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-            cd /var/www/quickquill
-            git pull
-            if [ ! -f config.json ]; then
-              printf '{"database_path":"dictionary.db","server_port":8080}\n' > config.json
-            fi
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          target: frontend
+          push: true
+          tags: |
+            ${{ env.IMAGE_FRONTEND }}:latest
+            ${{ env.IMAGE_FRONTEND }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Copy artifacts to VPS
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload compose file and deploy script to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "dict_crow,web/dist"
+          source: "compose.prod.yml,scripts/deploy_docker.sh"
           target: /var/www/quickquill
           strip_components: 0
 
-      - name: Restart services
+      - name: Run production deploy script
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          # DB credentials and Docker Hub login are injected through the
+          # environment so values can't break or inject into the command.
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_TAG: ${{ github.sha }}
+          DOCKER_IMAGE_BACKEND: ${{ env.IMAGE_BACKEND }}
+          DOCKER_IMAGE_FRONTEND: ${{ env.IMAGE_FRONTEND }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 30s
+          command_timeout: 30m
+          envs: DB_URL,DB_USERNAME,DB_PASSWORD,DOCKER_USERNAME,DOCKER_PASSWORD,DOCKER_TAG,DOCKER_IMAGE_BACKEND,DOCKER_IMAGE_FRONTEND
           script: |
             set -e
-            chmod +x /var/www/quickquill/dict_crow
-            sudo systemctl restart quickquill-backend
-            sudo systemctl restart nginx
-            echo "Deploy complete"
+            bash /var/www/quickquill/scripts/deploy_docker.sh

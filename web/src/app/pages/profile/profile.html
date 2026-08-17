@@ -1,0 +1,85 @@
+<div class="profile-page">
+  @if (user(); as user) {
+    <div class="profile-card">
+      <svg class="profile-logo" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+      </svg>
+      <h1 class="profile-title">Profile</h1>
+      <p class="profile-subtitle">{{ user.displayName || 'Your account' }}</p>
+
+      <div class="profile-fields">
+        @for (field of fields; track field.key) {
+          <div class="profile-field">
+            <div class="profile-label-row">
+              <span class="profile-label">{{ field.label }}</span>
+              <button type="button" class="profile-edit"
+                (click)="startEdit(field.key, field.getValue(user))"
+                [attr.aria-label]="'Edit ' + field.label" [title]="'Edit ' + field.label">
+                <img class="profile-edit-quill" src="/assets/quill.png" alt="" />
+              </button>
+            </div>
+            @if (field.key === 'password' && editingField() === 'password') {
+              <div class="profile-password-form">
+                <label class="profile-label" for="current-password">Current Password</label>
+                <input id="current-password" class="profile-input" type="password" autocomplete="current-password"
+                  [value]="currentPassword()" (input)="onPasswordInput('current', $any($event.target).value)" />
+
+                <label class="profile-label" for="new-password">New Password</label>
+                <input id="new-password" class="profile-input" type="password" autocomplete="new-password"
+                  [value]="newPassword()" (input)="onPasswordInput('new', $any($event.target).value)" />
+
+                <label class="profile-label" for="confirm-password">Confirm New Password</label>
+                <input id="confirm-password" class="profile-input" type="password" autocomplete="new-password"
+                  [value]="confirmPassword()" (input)="onPasswordInput('confirm', $any($event.target).value)" />
+
+                <div class="profile-edit-actions">
+                  <button type="button" class="profile-save" (click)="savePassword()" [disabled]="passwordSaving()">
+                    {{ passwordSaving() ? 'Saving…' : 'Update Password' }}
+                  </button>
+                  <button type="button" class="profile-cancel" (click)="cancelPasswordEdit()">Cancel</button>
+                </div>
+                @if (passwordError()) {
+                  <p class="profile-error">{{ passwordError() }}</p>
+                }
+                @if (passwordMessage()) {
+                  <p class="profile-message">{{ passwordMessage() }}</p>
+                }
+              </div>
+            } @else if (editingField() === field.key) {
+              <input class="profile-input" [type]="field.key === 'email' ? 'email' : 'text'"
+                [value]="fieldValue()" (input)="onInput($any($event.target).value)" />
+              <div class="profile-edit-actions">
+                <button type="button" class="profile-save" (click)="saveEdit()" [disabled]="saving()">
+                  {{ saving() ? 'Saving…' : 'Save' }}
+                </button>
+                <button type="button" class="profile-cancel" (click)="cancelEdit()">Cancel</button>
+              </div>
+            } @else {
+              <span class="profile-value">{{ field.getValue(user) }}</span>
+            }
+          </div>
+        }
+        @if (error()) {
+          <p class="profile-error">{{ error() }}</p>
+        }
+      </div>
+
+      <div class="profile-section">
+        <h2 class="profile-section-title">Account</h2>
+        <p class="profile-empty">
+          Log out of this device or permanently delete your account, sessions, and all saved data.
+        </p>
+        <div class="profile-edit-actions">
+          <button type="button" class="profile-danger" (click)="onDeleteClick()" [disabled]="deleting()">
+            {{ deleting() ? 'Deleting…' : deleteArmed() ? 'Click again to confirm' : 'Delete Account' }}
+          </button>
+          <button type="button" class="profile-logout" (click)="logout()">Log Out</button>
+        </div>
+        @if (deleteError()) {
+          <p class="profile-error">{{ deleteError() }}</p>
+        }
+      </div>
+    </div>
+  }
+</div>

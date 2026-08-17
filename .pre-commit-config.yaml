@@ -7,3 +7,10 @@ repos:
         entry: clang-format-17 -i
         language: system
         files: \.(c|cpp|h|hpp|cc|hh)$
+    -   id: spotless-formatter
+        name: spotless-formatter
+        description: Format Java
+        entry: ./studio/gradlew -p studio spotlessApply
+        language: system
+        pass_filenames: false
+        files: \.(java)$
