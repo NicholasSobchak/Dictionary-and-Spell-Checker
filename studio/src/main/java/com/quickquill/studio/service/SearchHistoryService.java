@@ -45,7 +45,13 @@ public class SearchHistoryService {
       return;
     }
     String clean = word.trim();
-    repository.findByUserAndWord(user, clean).ifPresent(repository::delete);
+    repository
+        .findByUserAndWord(user, clean)
+        .ifPresent(
+            existing -> {
+              repository.delete(existing);
+              repository.flush();
+            });
     try {
       repository.save(new SearchHistory(user, clean));
     } catch (DataIntegrityViolationException e) {
