@@ -11,7 +11,7 @@ const MULTISPACE_RE = /\s+/g;
  */
 @Injectable({ providedIn: 'root' })
 export class Storage {
-  displayWord(text: string): string {
+  displayWord(text: string | null): string {
     if (!text) return '';
     return text
       .replace(DISPLAY_WORD_RE, ' ')

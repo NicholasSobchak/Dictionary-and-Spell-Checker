@@ -3,7 +3,7 @@ import { Observable, tap, map, catchError, of, throwError } from 'rxjs';
 import { Api } from './api';
 import { AuthUser } from '../models/auth.models';
 
-const AUTH_KEY = 'quickquill-auth';
+export const AUTH_KEY = 'quickquill-auth';
 
 @Injectable({
   providedIn: 'root',
