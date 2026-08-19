@@ -67,6 +67,7 @@ export class Api {
     return this.http.get<AutofillResponse>(`/api/autofill/${this.encodePath(word)}`, { params });
   }
 
+  // encodes word before its interpolated into the URL path, e.g. "hello world" -> "hello+world"
   private encodePath(value: string): string {
     return encodeURIComponent(value).replace(/%20/g, '+');
   }
@@ -82,7 +83,7 @@ export class Api {
       .set('displayName', displayName);
     return this.http
       .post<AuthResponse>('/api/auth/signup', body)
-      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
+      .pipe(timeout(Api.AUTH_TIMEOUT_MS)); // add timeout to prevent hanging
   }
 
   login(email: string, password: string): Observable<AuthResponse> {
