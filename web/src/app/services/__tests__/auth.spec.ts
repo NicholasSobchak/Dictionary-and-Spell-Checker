@@ -38,11 +38,13 @@ describe('Auth', () => {
     });
 
     it('does not set a session when the credentials are wrong', async () => {
-      vi.spyOn(api, 'login').mockReturnValue(throwError(() => new Error('Invalid email or password.')));
+      vi.spyOn(api, 'login').mockReturnValue(
+        throwError(() => new Error('Invalid email or password.')),
+      );
 
-      await expect(
-        firstValueFrom(auth.login('me@test.com', 'wrongpassword'))
-      ).rejects.toThrow('Invalid email or password.');
+      await expect(firstValueFrom(auth.login('me@test.com', 'wrongpassword'))).rejects.toThrow(
+        'Invalid email or password.',
+      );
 
       expect(auth.isAuthenticated()).toBe(false);
       expect(auth.token()).toBeNull();
@@ -75,7 +77,7 @@ describe('Auth', () => {
   describe('signup', () => {
     it('creates a new user and opens a session', async () => {
       const user = await firstValueFrom(
-        auth.signup(TEST_USER.email, 'validpassword', TEST_USER.displayName)
+        auth.signup(TEST_USER.email, 'validpassword', TEST_USER.displayName),
       );
 
       expect(user).toEqual(TEST_USER);
@@ -98,7 +100,7 @@ describe('Auth', () => {
       vi.spyOn(api, 'signup').mockReturnValue(throwError(() => new Error('email already exists')));
 
       await expect(
-        firstValueFrom(auth.signup('taken@test.com', 'validpassword', 'New User'))
+        firstValueFrom(auth.signup('taken@test.com', 'validpassword', 'New User')),
       ).rejects.toThrow('email already exists');
 
       expect(auth.isAuthenticated()).toBe(false);
@@ -110,7 +112,7 @@ describe('Auth', () => {
       vi.spyOn(api, 'signup').mockReturnValue(throwError(() => new Error('invalid email')));
 
       await expect(
-        firstValueFrom(auth.signup('invalidemail', 'validpassword', 'New User'))
+        firstValueFrom(auth.signup('invalidemail', 'validpassword', 'New User')),
       ).rejects.toThrow('invalid email');
 
       expect(auth.isAuthenticated()).toBe(false);
@@ -123,11 +125,11 @@ describe('Auth', () => {
       setStoredSession(TEST_SESSION);
 
       /**
-       * create new instance of Auth to simulate page reload 
-       * runInInjectionContext is used to create a new instance of Auth 
+       * create new instance of Auth to simulate page reload
+       * runInInjectionContext is used to create a new instance of Auth
        * with the same dependencies as the original instance
        */
-      const restoredAuth = TestBed.runInInjectionContext(() => new Auth()); 
+      const restoredAuth = TestBed.runInInjectionContext(() => new Auth());
 
       expect(restoredAuth.isAuthenticated()).toBe(true);
       expect(restoredAuth.token()).toBe(TEST_SESSION.token);
@@ -145,7 +147,7 @@ describe('Auth', () => {
   });
 
   describe('refresh', () => {
-    it ('returns null and does not call api.refresh when there is no token', async () => {
+    it('returns null and does not call api.refresh when there is no token', async () => {
       const refreshSpy = vi.spyOn(api, 'refresh');
 
       const result = await firstValueFrom(auth.refreshSession());
@@ -163,7 +165,7 @@ describe('Auth', () => {
 
       expect(auth.token()).toBe('newtoken');
       expect(JSON.parse(localStorage.getItem('quickquill-auth')!)).toEqual(refreshedSession);
-    }); 
+    });
 
     it('clears the session on a { status: 401 } error', async () => {
       await firstValueFrom(auth.login(TEST_USER.email, 'validpassword'));
@@ -193,21 +195,27 @@ describe('Auth', () => {
     it('throws Not authenticated. with no session and api.changePassword not called', async () => {
       const changePasswordSpy = vi.spyOn(api, 'changePassword');
 
-      await expect(firstValueFrom(auth.changePassword('oldpassword', 'newpassword'))).rejects.toThrow(
-        'Not authenticated.'
-      );
+      await expect(
+        firstValueFrom(auth.changePassword('oldpassword', 'newpassword')),
+      ).rejects.toThrow('Not authenticated.');
 
       expect(changePasswordSpy).not.toHaveBeenCalled();
     });
 
     it('calls api.changePassword with the token and returns the message', async () => {
       await firstValueFrom(auth.login(TEST_USER.email, 'validpassword'));
-      vi.spyOn(api, 'changePassword').mockReturnValue(of({ message: 'Password changed successfully.' }));
+      vi.spyOn(api, 'changePassword').mockReturnValue(
+        of({ message: 'Password changed successfully.' }),
+      );
 
       const result = await firstValueFrom(auth.changePassword('oldpassword', 'newpassword'));
 
       expect(result).toEqual({ message: 'Password changed successfully.' });
-      expect(api.changePassword).toHaveBeenCalledWith(TEST_SESSION.token, 'oldpassword', 'newpassword');
+      expect(api.changePassword).toHaveBeenCalledWith(
+        TEST_SESSION.token,
+        'oldpassword',
+        'newpassword',
+      );
     });
   });
 
@@ -222,7 +230,9 @@ describe('Auth', () => {
 
     it('clears the session when the account is deleted', async () => {
       await firstValueFrom(auth.login(TEST_USER.email, 'validpassword'));
-      vi.spyOn(api, 'deleteAccount').mockReturnValue(of({ message: 'Account deleted successfully.' }));
+      vi.spyOn(api, 'deleteAccount').mockReturnValue(
+        of({ message: 'Account deleted successfully.' }),
+      );
 
       await firstValueFrom(auth.deleteAccount());
 
@@ -246,9 +256,9 @@ describe('Auth', () => {
     it('throws Not authenticated. with no session and api.updateProfile not called', async () => {
       const updateProfileSpy = vi.spyOn(api, 'updateProfile');
 
-      await expect(
-        firstValueFrom(auth.updateProfile('New Name', 'new@test.com'))
-      ).rejects.toThrow('Not authenticated.');
+      await expect(firstValueFrom(auth.updateProfile('New Name', 'new@test.com'))).rejects.toThrow(
+        'Not authenticated.',
+      );
 
       expect(updateProfileSpy).not.toHaveBeenCalled();
     });

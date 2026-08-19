@@ -66,9 +66,9 @@ export class Dictionary implements OnInit, OnDestroy {
           const suggested = this.suggestedWords().slice(0, 20);
           return this.api.autofill(word, searchHistory, suggested).pipe(
             catchError(() => of(null)),
-            map((data) => ({ data, epoch }))
+            map((data) => ({ data, epoch })),
           );
-        })
+        }),
       )
       .subscribe(({ data, epoch }) => {
         if (epoch !== this.ghostEpoch) return;
@@ -103,9 +103,9 @@ export class Dictionary implements OnInit, OnDestroy {
               this.statusMessage.set(`Network error: ${err.message || 'failed to fetch'}`);
               this.isLoading.set(false);
               return of(null);
-            })
+            }),
           );
-        })
+        }),
       )
       .subscribe((response) => {
         if (!response) return;
@@ -120,7 +120,7 @@ export class Dictionary implements OnInit, OnDestroy {
         } else if (status >= 200 && status < 300) {
           this.result.set(body as WordResponse);
           const canonical = this.storage.displayWord(
-            (body as WordResponse).display_lemma || (body as WordResponse).query || word
+            (body as WordResponse).display_lemma || (body as WordResponse).query || word,
           );
           if (canonical) {
             this.searchInput.set(canonical);
@@ -220,7 +220,7 @@ export class Dictionary implements OnInit, OnDestroy {
         this.liveSuggestedWords.set(
           (Array.isArray(suggestions) ? suggestions : [])
             .map((w) => this.storage.displayWord(w))
-            .filter(Boolean)
+            .filter(Boolean),
         );
       },
       error: () => {
@@ -321,20 +321,20 @@ export class Dictionary implements OnInit, OnDestroy {
   }
 
   getDefinitions(): string[] {
-    return this.result()?.senses?.map(
-      (s) => `${s.pos ? `[${s.pos}] ` : ''}${s.definition}`
-    ) ?? [];
+    return this.result()?.senses?.map((s) => `${s.pos ? `[${s.pos}] ` : ''}${s.definition}`) ?? [];
   }
 
   formatLemma(): string {
     const r = this.result();
     const raw = r?.display_lemma || r?.query || r?.lemma || '';
     let decoded = raw;
-    try { decoded = decodeURIComponent(raw); } catch {}
+    try {
+      decoded = decodeURIComponent(raw);
+    } catch {
+      // keep raw text when it is not a valid percent-encoded string
+    }
     const heading = this.storage.displayWord(decoded);
     const capitalized = heading.charAt(0).toUpperCase() + heading.slice(1);
-    return capitalized.toLowerCase() === 'lexicon levissimum'
-      ? `${capitalized}!`
-      : capitalized;
+    return capitalized.toLowerCase() === 'lexicon levissimum' ? `${capitalized}!` : capitalized;
   }
 }

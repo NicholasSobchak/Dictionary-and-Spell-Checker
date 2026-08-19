@@ -19,7 +19,7 @@ export class Suggestions implements OnInit {
   private loggedOut = signal(false);
 
   readonly emptyMessage = computed(() =>
-    this.loggedOut() ? 'Log in to see your suggested words.' : 'No suggested words yet.'
+    this.loggedOut() ? 'Log in to see your suggested words.' : 'No suggested words yet.',
   );
 
   ngOnInit() {

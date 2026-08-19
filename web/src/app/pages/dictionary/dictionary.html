@@ -19,14 +19,15 @@
         (keydown)="onKeyDown($event)"
       />
       <div class="ghost-layer" aria-hidden="true">
-        <span class="ghost-typed">{{ ghostTyped() }}</span><span class="ghost-suffix">{{ ghostSuffix() }}</span>
+        <span class="ghost-typed">{{ ghostTyped() }}</span
+        ><span class="ghost-suffix">{{ ghostSuffix() }}</span>
       </div>
     </div>
   </div>
 
   <div class="status">
     @if (isLoading()) {
-      <span class="spinner"></span>  Looking up...
+      <span class="spinner"></span> Looking up...
     }
     <span>{{ statusMessage() }}</span>
     @if (showGhostHint() && ghostSuffix()) {
@@ -39,10 +40,15 @@
   @if (notFound()) {
     <div class="status" style="color: #ff6666">
       @if (notFound()!.suggestion) {
-        <span>Did you mean
-          <a href="#" class="suggestion-link" (click)="searchWord(notFound()!.suggestion!); $event.preventDefault()">
-            <em class="corrected-word">{{ notFound()!.suggestion }}</em>
-          </a>?
+        <span
+          >Did you mean
+          <a
+            href="#"
+            class="suggestion-link"
+            (click)="searchWord(notFound()!.suggestion!); $event.preventDefault()"
+          >
+            <em class="corrected-word">{{ notFound()!.suggestion }}</em> </a
+          >?
         </span>
       } @else {
         <span>Word '{{ searchInput() }}' not found.</span>
@@ -71,7 +77,12 @@
             @if (i > 0) {
               <span class="alternative-searches-separator">,</span>
             }
-            <a href="#" class="alternative-search-link" (click)="searchWord(alt); $event.preventDefault()">{{ alt }}</a>
+            <a
+              href="#"
+              class="alternative-search-link"
+              (click)="searchWord(alt); $event.preventDefault()"
+              >{{ alt }}</a
+            >
           }
         </div>
       }

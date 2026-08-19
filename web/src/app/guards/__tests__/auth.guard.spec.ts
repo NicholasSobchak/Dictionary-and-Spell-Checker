@@ -26,7 +26,7 @@ describe('authGuard', () => {
         ]),
       ],
     });
-    const harness = await RouterTestingHarness.create(); // boots the router and waits for initial navigation to complete
+    await RouterTestingHarness.create(); // boots the router and waits for initial navigation to complete
     router = TestBed.inject(Router);
     location = TestBed.inject(Location);
   });

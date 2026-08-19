@@ -1,16 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse, HttpParams } from '@angular/common/http';
 import { Observable, timeout } from 'rxjs';
-import {
-  WordResponse,
-  WordNotFound,
-  WordError,
-  AutofillResponse,
-} from '../models/word.models';
-import {
-  AuthUser,
-  AuthResponse,
-} from '../models/auth.models';
+import { WordResponse, WordNotFound, WordError, AutofillResponse } from '../models/word.models';
+import { AuthUser, AuthResponse } from '../models/auth.models';
 import { NoteResponse } from '../models/note.models';
 
 export function apiErrorMessage(err: unknown, fallback: string): string {
@@ -41,7 +33,7 @@ export class Api {
   lookup(word: string): Observable<HttpResponse<WordResponse | WordNotFound | WordError>> {
     return this.http.get<WordResponse | WordNotFound | WordError>(
       `/api/word/${this.encodePath(word)}`,
-      { observe: 'response' }
+      { observe: 'response' },
     );
   }
 
@@ -56,7 +48,7 @@ export class Api {
   autofill(
     word: string,
     searchHistory: string[],
-    suggested: string[]
+    suggested: string[],
   ): Observable<AutofillResponse> {
     let params = new HttpParams();
 
@@ -88,17 +80,12 @@ export class Api {
 
   login(email: string, password: string): Observable<AuthResponse> {
     const body = new HttpParams().set('email', email).set('password', password);
-    return this.http
-      .post<AuthResponse>('/api/auth/login', body)
-      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
+    return this.http.post<AuthResponse>('/api/auth/login', body).pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   logout(token: string): Observable<{ message: string }> {
     return this.http
-      .post<{ message: string }>(
-        '/api/auth/logout',
-        new HttpParams().set('token', token)
-      )
+      .post<{ message: string }>('/api/auth/logout', new HttpParams().set('token', token))
       .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
@@ -111,7 +98,7 @@ export class Api {
   changePassword(
     token: string,
     oldPassword: string,
-    newPassword: string
+    newPassword: string,
   ): Observable<{ message: string }> {
     const body = new HttpParams()
       .set('token', token)
@@ -124,10 +111,7 @@ export class Api {
 
   deleteAccount(token: string): Observable<{ message: string }> {
     return this.http
-      .post<{ message: string }>(
-        '/api/auth/delete-account',
-        new HttpParams().set('token', token)
-      )
+      .post<{ message: string }>('/api/auth/delete-account', new HttpParams().set('token', token))
       .pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
@@ -144,9 +128,7 @@ export class Api {
       .set('token', token)
       .set('displayName', displayName)
       .set('email', email);
-    return this.http
-      .post<AuthUser>('/api/auth/update', body)
-      .pipe(timeout(Api.AUTH_TIMEOUT_MS));
+    return this.http.post<AuthUser>('/api/auth/update', body).pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
   getNote(token: string): Observable<NoteResponse> {
@@ -158,7 +140,7 @@ export class Api {
   saveNote(token: string, content: string): Observable<NoteResponse> {
     return this.http.put<NoteResponse>(
       '/api/note',
-      new HttpParams().set('token', token).set('content', content)
+      new HttpParams().set('token', token).set('content', content),
     );
   }
 
@@ -171,7 +153,7 @@ export class Api {
   recordSearch(token: string, word: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(
       '/api/search-history',
-      new HttpParams().set('token', token).set('word', word)
+      new HttpParams().set('token', token).set('word', word),
     );
   }
 

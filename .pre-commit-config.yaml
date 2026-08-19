@@ -14,3 +14,17 @@ repos:
         language: system
         pass_filenames: false
         files: \.(java)$
+    -   id: prettier-formatter
+        name: prettier-formatter
+        description: Format TypeScript/HTML/CSS
+        entry: bash -c 'cd web && npm run format'
+        language: system
+        pass_filenames: false
+        files: ^web/
+    -   id: eslint-linter
+        name: eslint-linter
+        description: Lint and fix TypeScript
+        entry: bash -c 'cd web && npm run lint:fix'
+        language: system
+        pass_filenames: false
+        files: ^web/src/.*\.ts$

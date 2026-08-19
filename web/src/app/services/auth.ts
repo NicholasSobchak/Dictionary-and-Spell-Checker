@@ -100,9 +100,9 @@ export class Auth {
     if (!token) {
       return throwError(() => new Error('Not authenticated.'));
     }
-    return this.api.updateProfile(token, displayName, email).pipe(
-      tap((user) => this.setSession(token, user)),
-    );
+    return this.api
+      .updateProfile(token, displayName, email)
+      .pipe(tap((user) => this.setSession(token, user)));
   }
 
   clearSession(): void {

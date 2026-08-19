@@ -1,13 +1,7 @@
 import { HttpResponse } from '@angular/common/http';
 import { of } from 'rxjs';
 import { Api } from '../services/api';
-import {
-  AUTOFILL_RESPONSE,
-  HELLO_WORD,
-  TEST_NOTE,
-  TEST_SESSION,
-  TEST_USER,
-} from './fixtures';
+import { AUTOFILL_RESPONSE, HELLO_WORD, TEST_NOTE, TEST_SESSION, TEST_USER } from './fixtures';
 
 /**
  * Builds an in-memory Api whose methods return canned success values. Tests
@@ -17,7 +11,7 @@ import {
  *   vi.spyOn(api, 'login').mockReturnValue(throwError(() => ({ status: 401, error: { error: 'x' } })));
  */
 export function createApiStub(): Api {
-  // Partial<Api> makes every Api method optional, so we can override only the ones we want in tests. 
+  // Partial<Api> makes every Api method optional, so we can override only the ones we want in tests.
   const stub: Partial<Api> = {
     lookup: () => of(new HttpResponse({ body: HELLO_WORD, status: 200 })),
     suggest: () => of(['hello']),

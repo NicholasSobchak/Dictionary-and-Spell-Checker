@@ -38,8 +38,7 @@ body {
       rgba(0, 0, 0, 0) 86%,
       rgba(0, 0, 0, 1) 100%
     ),
-    linear-gradient(rgba(0, 0, 0, 0.99), rgba(0, 0, 0, 0.99)),
-    url('/assets/school_backdrop.jpg');
+    linear-gradient(rgba(0, 0, 0, 0.99), rgba(0, 0, 0, 0.99)), url('/assets/school_backdrop.jpg');
   background-size:
     260% 260%,
     100% 100%,

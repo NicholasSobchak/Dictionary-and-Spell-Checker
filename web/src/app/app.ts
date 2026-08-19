@@ -8,7 +8,7 @@ import { Auth } from './services/auth';
   selector: 'app-root',
   imports: [RouterOutlet, Header, Footer],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App implements OnInit {
   constructor(private router: Router) {}

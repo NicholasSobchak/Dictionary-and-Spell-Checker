@@ -19,7 +19,7 @@ export class SearchHistory implements OnInit {
   private loggedOut = signal(false);
 
   readonly emptyMessage = computed(() =>
-    this.loggedOut() ? 'Log in to see your search history.' : 'No search history yet.'
+    this.loggedOut() ? 'Log in to see your search history.' : 'No search history yet.',
   );
 
   ngOnInit() {

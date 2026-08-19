@@ -18,7 +18,7 @@ export class Signup extends AuthForm {
     emailInput: HTMLInputElement,
     displayNameInput: HTMLInputElement,
     passwordInput: HTMLInputElement,
-    confirmPasswordInput: HTMLInputElement
+    confirmPasswordInput: HTMLInputElement,
   ) {
     event.preventDefault();
 

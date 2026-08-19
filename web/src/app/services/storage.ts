@@ -13,9 +13,6 @@ const MULTISPACE_RE = /\s+/g;
 export class Storage {
   displayWord(text: string | null): string {
     if (!text) return '';
-    return text
-      .replace(DISPLAY_WORD_RE, ' ')
-      .replace(MULTISPACE_RE, ' ')
-      .trim();
+    return text.replace(DISPLAY_WORD_RE, ' ').replace(MULTISPACE_RE, ' ').trim();
   }
 }

@@ -258,10 +258,18 @@
 }
 
 @keyframes spin-text {
-  0%   { content: '|'; }
-  25%  { content: '/'; }
-  50%  { content: '-'; }
-  75%  { content: '\00a0'; }
+  0% {
+    content: '|';
+  }
+  25% {
+    content: '/';
+  }
+  50% {
+    content: '-';
+  }
+  75% {
+    content: '\00a0';
+  }
 }
 
 .suggested-inline {

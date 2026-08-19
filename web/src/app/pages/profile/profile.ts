@@ -74,7 +74,7 @@ export class Profile {
     this.auth
       .updateProfile(
         field === 'name' ? value : user.displayName,
-        field === 'email' ? value : user.email
+        field === 'email' ? value : user.email,
       )
       .subscribe({
         next: () => {

@@ -1,11 +1,8 @@
 import { HttpRequest, provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs'; // converts an observable to a promise (subscribes, waits for the first emission, unsubscribes
-                                       // unsubscribes, and resolves the promise with that value)
+// unsubscribes, and resolves the promise with that value)
 import { Api, apiErrorMessage } from '../api';
 import {
   AUTOFILL_RESPONSE,
@@ -50,7 +47,7 @@ describe('Api', () => {
       expect(req.request.method).toBe('GET');
       req.flush(HELLO_WORD, { status: 200, statusText: 'OK' }); // releases the captured request, emitting the value/error
 
-      const response = await promise; // resolves with the flushed data 
+      const response = await promise; // resolves with the flushed data
       expect(response.status).toBe(200);
       expect(response.body).toEqual(HELLO_WORD);
     });
@@ -308,16 +305,16 @@ describe('Api', () => {
   describe('apiErrorMessage', () => {
     it('prefers the server-provided message', () => {
       expect(apiErrorMessage({ error: { error: 'Wrong password.' } }, 'fallback')).toBe(
-        'Wrong password.'
+        'Wrong password.',
       );
     });
 
     it('maps status codes to friendly messages', () => {
       expect(apiErrorMessage({ status: 404 }, 'fallback')).toBe(
-        'This feature is not available right now. Please try again later.'
+        'This feature is not available right now. Please try again later.',
       );
       expect(apiErrorMessage({ status: 409 }, 'fallback')).toBe(
-        'An account with this email already exists.'
+        'An account with this email already exists.',
       );
       expect(apiErrorMessage({ status: 401 }, 'fallback')).toBe('Invalid email or password.');
     });
