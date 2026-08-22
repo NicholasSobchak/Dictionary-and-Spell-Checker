@@ -3,7 +3,7 @@ import { HttpClient, HttpResponse, HttpParams } from '@angular/common/http';
 import { Observable, timeout } from 'rxjs';
 import { WordResponse, WordNotFound, WordError, AutofillResponse } from '../models/word.models';
 import { AuthUser, AuthResponse } from '../models/auth.models';
-import { NoteResponse } from '../models/note.models';
+import { DocumentResponse, DocumentSummary } from '../models/document.models';
 
 export function apiErrorMessage(err: unknown, fallback: string): string {
   // Prefer the server's own message (e.g. "Wrong password.", "Email already registered.").
@@ -131,17 +131,42 @@ export class Api {
     return this.http.post<AuthUser>('/api/auth/update', body).pipe(timeout(Api.AUTH_TIMEOUT_MS));
   }
 
-  getNote(token: string): Observable<NoteResponse> {
-    return this.http.get<NoteResponse>('/api/note', {
+  listDocuments(token: string): Observable<DocumentSummary[]> {
+    return this.http.get<DocumentSummary[]>('/api/documents', {
       params: new HttpParams().set('token', token),
     });
   }
 
-  saveNote(token: string, content: string): Observable<NoteResponse> {
-    return this.http.put<NoteResponse>(
-      '/api/note',
-      new HttpParams().set('token', token).set('content', content),
+  createDocument(token: string, title?: string): Observable<DocumentResponse> {
+    let params = new HttpParams().set('token', token);
+    if (title !== undefined) {
+      params = params.set('title', title);
+    }
+    return this.http.post<DocumentResponse>('/api/documents', params);
+  }
+
+  getDocument(token: string, id: number): Observable<DocumentResponse> {
+    return this.http.get<DocumentResponse>(`/api/documents/${id}`, {
+      params: new HttpParams().set('token', token),
+    });
+  }
+
+  saveDocument(token: string, id: number, content: string): Observable<DocumentResponse> {
+    const body = new HttpParams().set('token', token).set('content', content);
+    return this.http.put<DocumentResponse>(`/api/documents/${id}`, body);
+  }
+
+  renameDocument(token: string, id: number, title: string): Observable<DocumentResponse> {
+    return this.http.post<DocumentResponse>(
+      `/api/documents/${id}/rename`,
+      new HttpParams().set('token', token).set('title', title),
     );
+  }
+
+  deleteDocument(token: string, id: number): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`/api/documents/${id}`, {
+      params: new HttpParams().set('token', token),
+    });
   }
 
   getSearchHistory(token: string): Observable<string[]> {

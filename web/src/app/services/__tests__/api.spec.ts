@@ -7,7 +7,7 @@ import { Api, apiErrorMessage } from '../api';
 import {
   AUTOFILL_RESPONSE,
   HELLO_WORD,
-  TEST_NOTE,
+  TEST_DOCUMENT,
   TEST_SESSION,
   TEST_USER,
   WORD_ERROR,
@@ -209,30 +209,89 @@ describe('Api', () => {
     });
   });
 
-  describe('account endpoints', () => {
-    it('getNote GETs with the token as a query param', async () => {
-      const promise = firstValueFrom(api.getNote('t0ken'));
+  describe('document endpoints', () => {
+    it('listDocuments GETs with the token as a query param', async () => {
+      const promise = firstValueFrom(api.listDocuments('t0ken'));
 
-      const req = httpMock.expectOne(byUrl('/api/note'));
+      const req = httpMock.expectOne(byUrl('/api/documents'));
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('token')).toBe('t0ken');
-      req.flush(TEST_NOTE);
+      req.flush([TEST_DOCUMENT]);
 
-      expect(await promise).toEqual(TEST_NOTE);
+      expect(await promise).toEqual([TEST_DOCUMENT]);
     });
 
-    it('saveNote PUTs the content in the body', async () => {
-      const promise = firstValueFrom(api.saveNote('t0ken', 'my note'));
+    it('createDocument POSTs the title when given', async () => {
+      const promise = firstValueFrom(api.createDocument('t0ken', 'My Story'));
 
-      const req = httpMock.expectOne('/api/note');
+      const req = httpMock.expectOne('/api/documents');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body.get('token')).toBe('t0ken');
+      expect(req.request.body.get('title')).toBe('My Story');
+      req.flush(TEST_DOCUMENT);
+
+      expect(await promise).toEqual(TEST_DOCUMENT);
+    });
+
+    it('createDocument omits the title param when none is given', async () => {
+      const promise = firstValueFrom(api.createDocument('t0ken'));
+
+      const req = httpMock.expectOne('/api/documents');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.params.get('title')).toBeNull();
+      req.flush(TEST_DOCUMENT);
+
+      expect(await promise).toEqual(TEST_DOCUMENT);
+    });
+
+    it('getDocument GETs by id with the token as a query param', async () => {
+      const promise = firstValueFrom(api.getDocument('t0ken', 1));
+
+      const req = httpMock.expectOne(byUrl('/api/documents/1'));
+      expect(req.request.method).toBe('GET');
+      expect(req.request.params.get('token')).toBe('t0ken');
+      req.flush(TEST_DOCUMENT);
+
+      expect(await promise).toEqual(TEST_DOCUMENT);
+    });
+
+    it('saveDocument PUTs the content in the body', async () => {
+      const promise = firstValueFrom(api.saveDocument('t0ken', 1, 'my note'));
+
+      const req = httpMock.expectOne('/api/documents/1');
       expect(req.request.method).toBe('PUT');
       expect(req.request.body.get('token')).toBe('t0ken');
       expect(req.request.body.get('content')).toBe('my note');
-      req.flush(TEST_NOTE);
+      req.flush(TEST_DOCUMENT);
 
-      expect(await promise).toEqual(TEST_NOTE);
+      expect(await promise).toEqual(TEST_DOCUMENT);
     });
 
+    it('renameDocument POSTs the new title in the body', async () => {
+      const promise = firstValueFrom(api.renameDocument('t0ken', 1, 'Renamed'));
+
+      const req = httpMock.expectOne('/api/documents/1/rename');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body.get('token')).toBe('t0ken');
+      expect(req.request.body.get('title')).toBe('Renamed');
+      req.flush(TEST_DOCUMENT);
+
+      expect(await promise).toEqual(TEST_DOCUMENT);
+    });
+
+    it('deleteDocument DELETEs by id with the token', async () => {
+      const promise = firstValueFrom(api.deleteDocument('t0ken', 1));
+
+      const req = httpMock.expectOne(byUrl('/api/documents/1'));
+      expect(req.request.method).toBe('DELETE');
+      expect(req.request.params.get('token')).toBe('t0ken');
+      req.flush({ message: 'Document deleted.' });
+
+      expect((await promise).message).toBe('Document deleted.');
+    });
+  });
+
+  describe('per-user endpoints', () => {
     it('getSearchHistory GETs with the token as a query param', async () => {
       const promise = firstValueFrom(api.getSearchHistory('t0ken'));
 

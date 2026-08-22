@@ -1,7 +1,7 @@
 import { HttpResponse } from '@angular/common/http';
 import { of } from 'rxjs';
 import { Api } from '../services/api';
-import { AUTOFILL_RESPONSE, HELLO_WORD, TEST_NOTE, TEST_SESSION, TEST_USER } from './fixtures';
+import { AUTOFILL_RESPONSE, HELLO_WORD, TEST_DOCUMENT, TEST_SESSION, TEST_USER } from './fixtures';
 
 /**
  * Builds an in-memory Api whose methods return canned success values. Tests
@@ -25,8 +25,12 @@ export function createApiStub(): Api {
     deleteAccount: () => of({ message: 'Account deleted successfully.' }),
     me: () => of(TEST_USER),
     updateProfile: () => of(TEST_USER),
-    getNote: () => of(TEST_NOTE),
-    saveNote: () => of(TEST_NOTE),
+    listDocuments: () => of([TEST_DOCUMENT]),
+    createDocument: () => of(TEST_DOCUMENT),
+    getDocument: () => of(TEST_DOCUMENT),
+    saveDocument: () => of(TEST_DOCUMENT),
+    renameDocument: () => of(TEST_DOCUMENT),
+    deleteDocument: () => of({ message: 'Document deleted.' }),
     getSearchHistory: () => of(['apple', 'banana']),
     recordSearch: () => of({ message: 'Search recorded.' }),
     clearSearchHistory: () => of({ message: 'Search history cleared.' }),

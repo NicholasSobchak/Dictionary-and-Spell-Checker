@@ -226,10 +226,14 @@ cmake --build build
 - `POST /api/auth/delete-account?token=` — Delete account and all dependent rows
 - `GET /api/auth/me?token=` — Current user info
 
-### Notepad (per-user)
+### Lettre Documents (per-user)
 
-- `GET /api/note?token=` — Fetch the user's note
-- `PUT /api/note?token=&content=` — Save the user's note
+- `GET /api/documents?token=` — List the user's documents (most recently updated first)
+- `POST /api/documents?token=&title=` — Create a document (title defaults to "Untitled")
+- `GET /api/documents/{id}?token=` — Fetch one document with its content (404 if not owned by the user)
+- `PUT /api/documents/{id}?token=&content=` — Save document content
+- `POST /api/documents/{id}/rename?token=&title=` — Rename a document
+- `DELETE /api/documents/{id}?token=` — Delete a document
 
 ### Search History (per-user)
 

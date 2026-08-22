@@ -1,0 +1,162 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.lettre-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+  padding: 40px 20px;
+}
+
+.lettre-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.lettre-textarea {
+  width: 100%;
+  min-height: 420px;
+  padding: 18px 20px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--edge);
+  border-radius: 0;
+  outline: none;
+  resize: vertical;
+  caret-color: var(--ink);
+}
+
+.lettre-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.lettre-textarea:focus {
+  border-color: var(--muted);
+}
+
+.lettre-status {
+  min-height: 24px;
+  margin-top: 10px;
+  font-size: 14px;
+  font-style: italic;
+  text-align: right;
+}
+
+.lettre-saving {
+  color: var(--muted);
+}
+
+.lettre-saved {
+  color: #7aa97a;
+}
+
+.lettre-error {
+  color: #b3565a;
+}
+
+.file-list {
+  list-style: none;
+  margin: 8px auto 0;
+  padding: 0;
+  width: 100%;
+  max-width: 720px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--edge);
+}
+
+.file-name {
+  padding: 2px 0;
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.file-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 16px;
+}
+
+.file-action-button {
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  color: var(--muted);
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.file-action-button:hover {
+  color: var(--ink);
+}
+
+.rename-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--edge);
+  border-radius: 0;
+  outline: none;
+  color: var(--ink);
+  caret-color: var(--ink);
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  padding: 6px 10px;
+}
+
+.rename-input:focus {
+  border-color: var(--muted);
+}
+
+.lettre-empty {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 28px;
+}
+
+.editor-file-title {
+  color: var(--muted);
+  font-size: 24px;
+  letter-spacing: 0.6px;
+  text-align: center;
+  margin: 2px 0 6px;
+}
+
+/* Match the shell pages: pull the back row up onto the school-line artwork.
+   Scoped here safely — the div lives in Lettre's own template. */
+.editor-back-row {
+  position: relative;
+  z-index: 1;
+  margin-top: -64px;
+}

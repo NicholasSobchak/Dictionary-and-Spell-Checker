@@ -1,0 +1,67 @@
+@if (view() === 'list') {
+  <app-page-shell title="Lettre Docs">
+    <div shellButtons>
+      <button type="button" class="clear-history-button" (click)="newFile()">New file</button>
+    </div>
+    <ul class="file-list">
+      @for (doc of documents(); track doc.id) {
+        <li class="file-item">
+          @if (renameId() === doc.id) {
+            <input
+              class="rename-input"
+              [value]="renameValue()"
+              (input)="onRenameInput($event)"
+              (keydown.enter)="commitRename()"
+              (keydown.escape)="cancelRename()"
+              (blur)="commitRename()"
+              autofocus
+            />
+          } @else {
+            <button type="button" class="chip file-name" (click)="open(doc.id)">
+              {{ doc.title }}
+            </button>
+            <span class="file-meta">edited {{ formatDate(doc.updatedAt) }}</span>
+            <span class="file-actions">
+              <button type="button" class="file-action-button" (click)="startRename(doc)">
+                rename
+              </button>
+              <button type="button" class="file-action-button" (click)="remove(doc.id, doc.title)">
+                delete
+              </button>
+            </span>
+          }
+        </li>
+      }
+    </ul>
+    @if (!documents().length && !loadError()) {
+      <div class="lettre-empty">No files yet. Start your first one.</div>
+    }
+    @if (loadError()) {
+      <div class="lettre-error">{{ loadError() }}</div>
+    }
+  </app-page-shell>
+} @else {
+  <div class="lettre-page">
+    <div class="lettre-card">
+      <div class="editor-file-title">{{ openTitle() }}</div>
+      <img src="/assets/school_line.png" alt="" class="page-title-line" />
+      <div class="button-row editor-back-row">
+        <button type="button" class="back-button" (click)="backToList()">← All files</button>
+      </div>
+      <textarea
+        class="lettre-textarea"
+        [value]="content()"
+        (input)="onInput($event)"
+        placeholder="Start writing..."
+        spellcheck="false"
+      ></textarea>
+      <div class="lettre-status" aria-live="polite">
+        @if (saveState() === 'saving') {
+          <span class="lettre-saving">Saving…</span>
+        } @else if (saveState() === 'saved') {
+          <span class="lettre-saved">Saved</span>
+        }
+      </div>
+    </div>
+  </div>
+}
