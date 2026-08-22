@@ -42,14 +42,14 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
   && cmake --build build --target quickquill_engine -j$(nproc)
 
 ### Stage 4: Spring Boot build
-FROM eclipse-temurin:22-jdk AS backend-build
+FROM eclipse-temurin:25-jdk AS backend-build
 WORKDIR /src
 COPY studio/ ./
 COPY --from=engine-build /src/build/engine/src/libquickquill_engine.so /src/build/engine/src/libquickquill_engine.so
 RUN ./gradlew bootJar
 
 ### Stage 5: backend runtime image (target: backend)
-FROM eclipse-temurin:22-jre AS backend
+FROM eclipse-temurin:25-jre AS backend
 WORKDIR /app
 
 COPY --from=backend-build /src/build/libs/*.jar ./app.jar
