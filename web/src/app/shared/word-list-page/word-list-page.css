@@ -1,27 +1,4 @@
-.word-list-page {
-  padding: 20px;
-  text-align: center;
-}
-
-.word-list-page-header {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
-  margin-bottom: 24px;
-}
-
-.word-list-page-title {
-  font-size: 32px;
-  letter-spacing: 0.9px;
-  color: var(--muted);
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.word-list-page input {
+.filter-input {
   font-size: 18px;
   width: 100%;
   padding: 14px 16px;

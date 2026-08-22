@@ -1,9 +1,10 @@
 import { Component, inject, signal, computed, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { PageShell } from '../page-shell/page-shell';
 
 @Component({
   selector: 'app-word-list-page',
-  imports: [RouterLink],
+  imports: [RouterLink, PageShell],
   templateUrl: './word-list-page.html',
   styleUrl: './word-list-page.css',
 })

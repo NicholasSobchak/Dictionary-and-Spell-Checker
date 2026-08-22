@@ -1,0 +1,22 @@
+.page-shell {
+  padding: 0 20px 24px;
+  text-align: center;
+}
+
+.page-shell-title {
+  font-size: 32px;
+  letter-spacing: 0.9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+/* Pull the button row up so it sits on top of the school-line artwork.
+   Scoped here (not globally): the .button-row div belongs to PageShell's own
+   template, so emulated encapsulation resolves this selector correctly. */
+.page-shell .button-row {
+  position: relative;
+  z-index: 1;
+  margin-top: -64px;
+}
