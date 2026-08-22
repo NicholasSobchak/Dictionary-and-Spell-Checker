@@ -150,7 +150,8 @@
   font-size: 24px;
   letter-spacing: 0.6px;
   text-align: center;
-  margin: 2px 0 6px;
+  /* same upward nudge as the shared page-shell titles */
+  margin: -12px 0 6px;
 }
 
 /* Match the shell pages: pull the back row up onto the school-line artwork.
