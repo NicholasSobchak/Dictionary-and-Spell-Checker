@@ -140,13 +140,6 @@ app-footer {
   padding-right: 12px;
 }
 
-.line-container {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 .page-title-line {
   display: block;
   width: 100%;
@@ -154,8 +147,7 @@ app-footer {
   object-fit: contain;
   object-position: center center;
   opacity: 0.8;
-  margin-top: -25px;
-  margin-bottom: 16px;
+  margin: 0 0 12px;
   transform: rotate(180deg);
   mix-blend-mode: screen;
 }
@@ -165,13 +157,18 @@ app-footer {
   justify-content: center;
   align-items: center;
   gap: 24px;
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  margin-top: -4px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+/* PageShell projects its button slot as a single wrapper node, so the .button-row
+   gap around ng-content never reaches the buttons inside it. This rule must live
+   globally: the wrapper is declared in consumer templates, so component-scoped
+   selectors in page-shell.css can't see it (emulated encapsulation). */
+[shellButtons] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
 }
 
 .back-button {
