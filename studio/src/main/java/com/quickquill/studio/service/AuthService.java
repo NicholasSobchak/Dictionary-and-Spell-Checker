@@ -2,7 +2,7 @@ package com.quickquill.studio.service;
 
 import com.quickquill.studio.model.Session;
 import com.quickquill.studio.model.User;
-import com.quickquill.studio.repository.NoteRepository;
+import com.quickquill.studio.repository.DocumentRepository;
 import com.quickquill.studio.repository.SearchHistoryRepository;
 import com.quickquill.studio.repository.SessionRepository;
 import com.quickquill.studio.repository.SuggestedWordRepository;
@@ -18,7 +18,7 @@ public class AuthService {
 
   private final UserRepository userRepo;
   private final SessionRepository sessionRepo;
-  private final NoteRepository noteRepo;
+  private final DocumentRepository documentRepo;
   private final SearchHistoryRepository searchHistoryRepo;
   private final SuggestedWordRepository suggestedWordRepo;
   private final BCryptPasswordEncoder passwordEncoder;
@@ -26,12 +26,12 @@ public class AuthService {
   public AuthService(
       UserRepository userRepo,
       SessionRepository sessionRepo,
-      NoteRepository noteRepo,
+      DocumentRepository documentRepo,
       SearchHistoryRepository searchHistoryRepo,
       SuggestedWordRepository suggestedWordRepo) {
     this.userRepo = userRepo;
     this.sessionRepo = sessionRepo;
-    this.noteRepo = noteRepo;
+    this.documentRepo = documentRepo;
     this.searchHistoryRepo = searchHistoryRepo;
     this.suggestedWordRepo = suggestedWordRepo;
     this.passwordEncoder = new BCryptPasswordEncoder();
@@ -133,7 +133,7 @@ public class AuthService {
   public void deleteAccount(String token) {
     User user = validateSession(token);
     // Child rows reference the user with non-null FKs — delete them before the user.
-    noteRepo.deleteByUser(user);
+    documentRepo.deleteByUser(user);
     searchHistoryRepo.deleteByUser(user);
     suggestedWordRepo.deleteByUser(user);
     sessionRepo.deleteByUser(user);
