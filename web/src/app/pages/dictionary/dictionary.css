@@ -295,3 +295,75 @@
   font-style: italic;
   font-size: 14px;
 }
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  .brand-logo {
+    width: min(360px, 92vw);
+  }
+
+  .prompt-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* full-width search field; 18px keeps iOS from zoom-on-focus (needs >=16px) */
+  .autofill-wrapper {
+    flex-basis: 100%;
+  }
+
+  .autofill-wrapper input,
+  .ghost-layer {
+    font-size: 18px;
+  }
+
+  .result-box {
+    padding: 14px;
+  }
+
+  /* decorative corners scale down and stay inside the 14px shell padding */
+  .corner-tl,
+  .corner-tr,
+  .corner-bl,
+  .corner-br {
+    width: 28px;
+    height: 28px;
+  }
+
+  .corner-tl,
+  .corner-tr {
+    top: -14px;
+  }
+
+  .corner-bl,
+  .corner-br {
+    bottom: -14px;
+  }
+
+  .corner-tl,
+  .corner-bl {
+    left: -14px;
+  }
+
+  .corner-tr,
+  .corner-br {
+    right: -14px;
+  }
+
+  .lemma {
+    font-size: 38px;
+    margin-left: -8px;
+  }
+
+  .label {
+    font-size: 16px;
+  }
+
+  .alternative-searches-label {
+    margin-left: -8px;
+  }
+
+  .suggested-inline-title {
+    font-size: 17px;
+  }
+}

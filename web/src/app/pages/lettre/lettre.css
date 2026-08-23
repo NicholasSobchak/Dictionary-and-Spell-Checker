@@ -161,3 +161,45 @@
   z-index: 1;
   margin-top: -64px;
 }
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  .file-item {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .file-name {
+    flex: 1 1 auto;
+    max-width: calc(100% - 120px);
+    font-size: 16px;
+  }
+
+  /* rename/delete drop below the name instead of squeezing it */
+  .file-actions {
+    margin-left: auto;
+  }
+
+  .file-meta {
+    flex-basis: 100%;
+  }
+
+  .rename-input {
+    font-size: 16px; /* prevents iOS zoom-on-focus */
+  }
+
+  .editor-file-title {
+    font-size: 20px;
+  }
+
+  .lettre-textarea {
+    min-height: 300px;
+    font-size: 16px; /* prevents iOS zoom-on-focus */
+    padding: 14px 16px;
+  }
+
+  /* pairs with the 56px mobile page-title-line set in styles.css */
+  .editor-back-row {
+    margin-top: -40px;
+  }
+}

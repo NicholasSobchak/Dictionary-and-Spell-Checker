@@ -21,3 +21,16 @@
   z-index: 1;
   margin-top: -64px;
 }
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  .page-shell-title {
+    font-size: 24px;
+    margin-top: -16px;
+  }
+
+  /* pairs with the 56px mobile page-title-line set in styles.css */
+  .page-shell .button-row {
+    margin-top: -40px;
+  }
+}

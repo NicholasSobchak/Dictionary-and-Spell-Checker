@@ -147,3 +147,28 @@
   cursor: pointer;
   display: block;
 }
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  .hamburger {
+    padding: 10px;
+    margin-left: -6px; /* larger touch target around the quill icon */
+  }
+
+  .profile-chip {
+    padding: 10px 8px;
+  }
+
+  /* long display names must never push the chip off-screen */
+  .profile-chip span {
+    max-width: 36vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .drawer {
+    width: min(340px, 88vw);
+    padding: 20px 18px;
+  }
+}

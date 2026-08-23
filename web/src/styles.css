@@ -195,3 +195,36 @@ app-footer {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  .shell {
+    padding: 84px 14px 64px;
+  }
+
+  .row {
+    margin-left: 0;
+    gap: 10px;
+  }
+
+  .button-row,
+  [shellButtons] {
+    gap: 16px;
+  }
+
+  .back-button,
+  .clear-history-button {
+    padding: 12px 8px; /* comfortable touch target */
+  }
+
+  .back-button {
+    margin-left: -8px;
+  }
+
+  /* the decorative line shrinks, so overlap offsets must shrink with it
+     (component media queries pair their own rows to this height) */
+  .page-title-line {
+    max-height: 56px;
+    margin-bottom: 10px;
+  }
+}
