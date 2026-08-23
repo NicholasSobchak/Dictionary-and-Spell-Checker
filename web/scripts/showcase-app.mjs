@@ -16,8 +16,17 @@
  */
 
 import { createServer } from 'node:http';
-import { accessSync, constants, readFileSync, existsSync, statSync } from 'node:fs';
+import {
+  accessSync,
+  constants,
+  readFileSync,
+  readdirSync,
+  existsSync,
+  statSync,
+  unlinkSync,
+} from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { chromium, devices } from 'playwright';
 
@@ -27,6 +36,7 @@ const distDir = join(webRoot, 'dist', 'browser');
 const shotsDir = join(webRoot, 'screenshots');
 
 const MOBILE = process.argv.includes('--mobile');
+const GIF = process.argv.includes('--gif');
 const HEADLESS = !process.argv.includes('--headed');
 const PORT = Number(process.env.SHOWCASE_PORT || 4173);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -208,12 +218,23 @@ async function main() {
   }
 
   const server = await startStaticServer();
-  const browser = await chromium.launch({ headless: HEADLESS, slowMo: HEADLESS ? 0 : 150 });
+  const browser = await chromium.launch({
+    headless: HEADLESS,
+    // GIF mode needs visible pacing even headless, or the loop blurs past.
+    slowMo: GIF ? 250 : HEADLESS ? 0 : 150,
+  });
 
-  const deviceName = MOBILE ? 'iPhone 13' : 'Desktop Chrome';
+  const label = MOBILE ? 'mobile' : 'desktop';
   const contextOptions = MOBILE
     ? { ...devices['iPhone 13'] }
     : { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 };
+
+  if (GIF) {
+    contextOptions.recordVideo = {
+      dir: shotsDir,
+      size: MOBILE ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+    };
+  }
 
   const context = await browser.newContext(contextOptions);
   context.setDefaultTimeout(15_000);
@@ -230,11 +251,14 @@ async function main() {
   const step = async (name, fn) => {
     process.stdout.write(`\u2022 ${name} `);
     await fn();
-    const label = MOBILE ? 'mobile' : 'desktop';
-    await page.screenshot({
-      path: join(shotsDir, `${label}-${name}.png`),
-      fullPage: true,
-    });
+    if (GIF) {
+      await page.waitForTimeout(600); // let each screen linger in the recording
+    } else {
+      await page.screenshot({
+        path: join(shotsDir, `${label}-${name}.png`),
+        fullPage: true,
+      });
+    }
     console.log('\u2713');
   };
 
@@ -281,9 +305,40 @@ async function main() {
     await page.locator('.profile-card').waitFor();
   });
 
+  // close the context first so Playwright flushes the .webm to disk
+  await context.close();
   await browser.close();
+
+  let deliverable = `${label} screenshots in ${shotsDir}${sep}`;
+  if (GIF) {
+    deliverable = await encodeGif(label);
+  }
   server.close();
-  console.log(`\nScreenshots saved to ${shotsDir}${sep} (${MOBILE ? 'iPhone 13' : 'desktop 1440x900 @2x'})`);
+  console.log(`\nDone: ${deliverable}`);
+}
+
+/** Transcode the tour's recorded video into a compact looping GIF via ffmpeg. */
+async function encodeGif(label) {
+  const recordings = readdirSync(shotsDir)
+    .filter((f) => f.endsWith('.webm'))
+    .map((f) => join(shotsDir, f))
+    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+  if (recordings.length === 0) {
+    throw new Error('GIF mode: no recorded video found');
+  }
+
+  const webm = recordings[0];
+  const out = join(shotsDir, `showcase-${label}.gif`);
+  const width = MOBILE ? 390 : 800;
+  // two-pass palette keeps the dark theme free of banding artifacts;
+  // multi-stream chains must run under -filter_complex (not -vf)
+  const chain = `[0:v]fps=12,scale=${width}:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4`;
+
+  execFileSync('ffmpeg', ['-y', '-i', webm, '-filter_complex', chain, '-loop', '0', out], {
+    stdio: 'ignore',
+  });
+  unlinkSync(webm);
+  return out;
 }
 
 async function routeAllApi(page) {
