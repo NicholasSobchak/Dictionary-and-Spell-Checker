@@ -14,8 +14,7 @@
     "format:check": "prettier --check src",
     "showcase": "node scripts/showcase-app.mjs",
     "showcase:mobile": "node scripts/showcase-app.mjs --mobile",
-    "showcase:gif": "node scripts/showcase-app.mjs --gif",
-    "showcase:gif:mobile": "node scripts/showcase-app.mjs --gif --mobile"
+    "showcase:gif": "node scripts/showcase-app.mjs --gif"
   },
   "private": true,
   "packageManager": "npm@11.16.0",

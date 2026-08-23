@@ -10,9 +10,12 @@
  *
  *   npm run build            # produce dist/browser
  *   npx playwright install chromium   # once
- *   node scripts/showcase-app.mjs           # desktop tour  -> screenshots/desktop-*.png
- *   node scripts/showcase-app.mjs --mobile  # iPhone tour    -> screenshots/mobile-*.png
+ *   node scripts/showcase-app.mjs           # desktop screenshots -> screenshots/desktop-*.png
+ *   node scripts/showcase-app.mjs --gif     # animated gif       -> screenshots/showcase-desktop.gif
  *   node scripts/showcase-app.mjs --headed  # watch it live
+ *
+ * GIF mode records a single continuous SPA session (drawer-driven navigation,
+ * no page reloads) with an on-screen mouse cursor; it is desktop-only.
  */
 
 import { createServer } from 'node:http';
@@ -35,8 +38,10 @@ const webRoot = resolve(scriptDir, '..');
 const distDir = join(webRoot, 'dist', 'browser');
 const shotsDir = join(webRoot, 'screenshots');
 
-const MOBILE = process.argv.includes('--mobile');
+const MOBILE_REQUESTED = process.argv.includes('--mobile');
 const GIF = process.argv.includes('--gif');
+// the recorded demo is desktop-only: phone tours cut between reloads and read as glitches
+const MOBILE = GIF ? false : MOBILE_REQUESTED;
 const HEADLESS = !process.argv.includes('--headed');
 const PORT = Number(process.env.SHOWCASE_PORT || 4173);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -245,14 +250,58 @@ async function main() {
     [AUTH_KEY, JSON.stringify({ token: DEMO_TOKEN, user: DEMO_USER })],
   );
 
+  // Playwright recordings show no pointer, so render a fake one that glides
+  // between interactions (moved via window.__moveShowcaseCursor).
+  await context.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const el = document.createElement('div');
+      el.style.cssText = [
+        'position:fixed',
+        'left:0',
+        'top:0',
+        'width:22px',
+        'height:22px',
+        'z-index:2147483647',
+        'pointer-events:none',
+        'transition:transform 420ms cubic-bezier(0.25,0.8,0.35,1)',
+        'transform:translate(-100px,-100px)',
+        `background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M5 2l14 11h-6l-3 7z' fill='%23ffffff' stroke='%23000000' stroke-width='1.4'/%3E%3C/svg%3E") center/contain no-repeat`,
+      ].join(';');
+      document.body.appendChild(el);
+      window.__moveShowcaseCursor = (x, y) => {
+        el.style.transform = `translate(${x}px, ${y}px)`;
+      };
+    });
+  });
+
   const page = await context.newPage();
   await routeAllApi(page);
+
+  /** Glide the fake cursor over an element's center before acting on it. */
+  const hoverOver = async (locator) => {
+    const box = await locator.boundingBox();
+    // offset a touch up-left so the arrow tip, not its corner, sits on the target
+    await page.evaluate(
+      ([x, y]) => window.__moveShowcaseCursor(x - 3, y - 3),
+      [box.x + box.width / 2, box.y + box.height / 2],
+    );
+    await page.waitForTimeout(GIF ? 480 : 120);
+  };
+
+  const click = async (locator) => {
+    await hoverOver(locator);
+    await locator.click();
+  };
+
+  const drawerLink = (path) => page.locator(`.drawer .nav-link[routerlink="${path}"]`);
+
+  const openDrawer = () => click(page.locator('.hamburger'));
 
   const step = async (name, fn) => {
     process.stdout.write(`\u2022 ${name} `);
     await fn();
     if (GIF) {
-      await page.waitForTimeout(600); // let each screen linger in the recording
+      await page.waitForTimeout(700); // let each screen linger in the recording
     } else {
       await page.screenshot({
         path: join(shotsDir, `${label}-${name}.png`),
@@ -262,46 +311,57 @@ async function main() {
     console.log('\u2713');
   };
 
+  // One continuous SPA session: every navigation is a drawer click, so the
+  // recording has no reload cuts — only smooth route transitions.
   await step('01-dictionary', async () => {
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+  });
+
+  await step('02-search', async () => {
     const input = page.locator('.autofill-wrapper input');
-    await input.click();
+    await click(input);
     await input.pressSequentially('serene', { delay: 90 });
     await input.press('Enter');
     await page.locator('.result-box.has-results .lemma').waitFor();
   });
 
-  await step('02-drawer', async () => {
-    await page.locator('.hamburger').click();
+  await step('03-history', async () => {
+    await openDrawer();
     await page.locator('.drawer.open').waitFor();
-  });
-
-  await step('03-search-history', async () => {
-    await page.locator('.drawer .nav-link[routerlink="/search-history"]').click();
+    await click(drawerLink('/search-history'));
     await page.locator('.word-list-chip').first().waitFor();
   });
 
   await step('04-suggested-words', async () => {
-    await page.goto(`${BASE}/suggestions`, { waitUntil: 'networkidle' });
+    await openDrawer();
+    await page.locator('.drawer.open').waitFor();
+    await click(drawerLink('/suggestions'));
     await page.locator('.word-list-chip').first().waitFor();
   });
 
   await step('05-lettre-files', async () => {
-    await page.goto(`${BASE}/lettre`, { waitUntil: 'networkidle' });
+    await openDrawer();
+    await page.locator('.drawer.open').waitFor();
+    await click(drawerLink('/lettre'));
     await page.locator('.file-item').first().waitFor();
   });
 
   await step('06-lettre-editor', async () => {
-    await page.locator('.file-name', { hasText: 'Field Notes' }).click();
+    await click(page.locator('.file-name', { hasText: 'Field Notes' }));
     await page.locator('.lettre-textarea').waitFor();
     await page.locator('.editor-file-title', { hasText: 'Field Notes' }).waitFor();
-    await page.locator('.lettre-textarea').fill('');
+    const textarea = page.locator('.lettre-textarea');
+    await click(textarea);
+    await textarea.fill('');
     await page.keyboard.type('Autosave demo: typed in the showcase.', { delay: 20 });
     await page.locator('.lettre-saved').waitFor(); // debounced PUT resolved against the mock
   });
 
   await step('07-profile', async () => {
-    await page.goto(`${BASE}/profile`, { waitUntil: 'networkidle' });
+    await openDrawer();
+    await page.locator('.drawer.open').waitFor();
+    await click(drawerLink('/profile'));
     await page.locator('.profile-card').waitFor();
   });
 
