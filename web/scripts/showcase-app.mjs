@@ -282,40 +282,13 @@ async function main() {
       ].join(';');
       document.body.appendChild(cursor);
 
-      const rippleRing = (x, y) => {
-        const ring = document.createElement('div');
-        ring.style.cssText = [
-          'position:fixed',
-          `left:${x}px`,
-          `top:${y}px`,
-          'width:16px',
-          'height:16px',
-          'border:3px solid rgba(255,255,255,0.95)',
-          'border-radius:50%',
-          'z-index:2147483646',
-          'pointer-events:none',
-          'box-shadow:0 0 6px rgba(0,0,0,0.6)',
-          'transform:translate(-50%,-50%) scale(0.4)',
-          'opacity:1',
-          'transition:transform 460ms ease-out, opacity 460ms ease-out',
-        ].join(';');
-        document.body.appendChild(ring);
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            ring.style.transform = 'translate(-50%,-50%) scale(3)';
-            ring.style.opacity = '0';
-          }),
-        );
-        setTimeout(() => ring.remove(), 520);
-      };
-
       window.__qqCursor = {
         move: (x, y) => {
           cursor.style.transform = `translate(${x}px, ${y}px)`;
         },
-        press: (x, y) => {
-          rippleRing(x, y);
-          graphic.style.transform = 'scale(0.72)'; // click squash
+        press: () => {
+          // click motion only: a quick squash of the arrow, no ripple ring
+          graphic.style.transform = 'scale(0.72)';
           setTimeout(() => {
             graphic.style.transform = 'scale(1)';
           }, 150);
@@ -422,6 +395,15 @@ async function main() {
     await page.locator('.drawer.open').waitFor();
     await click(drawerLink('/profile'));
     await page.locator('.profile-card').waitFor();
+  });
+
+  // closing beat: the demo user deletes their account (arm, confirm, logged out)
+  await step('08-delete-account', async () => {
+    const danger = page.locator('.profile-danger');
+    await click(danger); // arm -> "Click again to confirm"
+    await page.locator('.profile-danger:has-text("Click again to confirm")').waitFor();
+    await click(danger); // confirm -> DELETE /api/auth/delete-account
+    await page.waitForURL(/\/login/);
   });
 
   // close the context first so Playwright flushes the .webm to disk
