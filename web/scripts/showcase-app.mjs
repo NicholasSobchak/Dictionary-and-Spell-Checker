@@ -329,6 +329,14 @@ async function main() {
 
   const openDrawer = () => click(page.locator('.hamburger'));
 
+  /** Show off a list page's live filter: type into it until one word remains. */
+  const demoFilter = async (query, remainingWord) => {
+    const filter = page.locator('.filter-input');
+    await click(filter);
+    await filter.pressSequentially(query, { delay: 160 });
+    await page.locator('.word-list-chip', { hasText: remainingWord }).waitFor();
+  };
+
   const step = async (name, fn) => {
     process.stdout.write(`\u2022 ${name} `);
     await fn();
@@ -363,6 +371,7 @@ async function main() {
     await page.locator('.drawer.open').waitFor();
     await click(drawerLink('/search-history'));
     await page.locator('.word-list-chip').first().waitFor();
+    await demoFilter('pet', 'petrichor'); // five words narrow down to one
   });
 
   await step('04-suggested-words', async () => {
@@ -370,6 +379,7 @@ async function main() {
     await page.locator('.drawer.open').waitFor();
     await click(drawerLink('/suggestions'));
     await page.locator('.word-list-chip').first().waitFor();
+    await demoFilter('su', 'susurrus');
   });
 
   await step('05-lettre-files', async () => {
