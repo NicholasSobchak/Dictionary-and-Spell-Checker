@@ -250,26 +250,76 @@ async function main() {
     [AUTH_KEY, JSON.stringify({ token: DEMO_TOKEN, user: DEMO_USER })],
   );
 
-  // Playwright recordings show no pointer, so render a fake one that glides
-  // between interactions (moved via window.__moveShowcaseCursor).
+  // Playwright recordings show no pointer, so render a fake one: a big
+  // macOS-style black arrow (white outline for contrast) that glides between
+  // targets and fires an exaggerated ripple ring on every click.
   await context.addInitScript(() => {
     document.addEventListener('DOMContentLoaded', () => {
-      const el = document.createElement('div');
-      el.style.cssText = [
+      const CURSOR_SVG =
+        "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' viewBox='0 0 28 28'%3E%3Cpath d='M4 2 L4 23 L10 17.5 L13.5 25.5 L17.5 23.8 L14 16.2 L21.5 15.5 Z' fill='%231a1a1a' stroke='%23ffffff' stroke-width='2.2' stroke-linejoin='round' paint-order='stroke'/%3E%3C/svg%3E\")";
+
+      const cursor = document.createElement('div');
+      const graphic = document.createElement('div');
+      graphic.style.cssText = [
+        'width:100%',
+        'height:100%',
+        `background:${CURSOR_SVG} center/contain no-repeat`,
+        'transform-origin:30% 10%', // squash toward the arrow tip
+        'transition:transform 140ms ease-out',
+      ].join(';');
+      cursor.appendChild(graphic);
+      cursor.style.cssText = [
         'position:fixed',
         'left:0',
         'top:0',
-        'width:22px',
-        'height:22px',
+        'width:38px',
+        'height:38px',
         'z-index:2147483647',
         'pointer-events:none',
+        'filter:drop-shadow(0 2px 3px rgba(0,0,0,0.55))',
         'transition:transform 420ms cubic-bezier(0.25,0.8,0.35,1)',
-        'transform:translate(-100px,-100px)',
-        `background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M5 2l14 11h-6l-3 7z' fill='%23ffffff' stroke='%23000000' stroke-width='1.4'/%3E%3C/svg%3E") center/contain no-repeat`,
+        'transform:translate(-200px,-200px)',
       ].join(';');
-      document.body.appendChild(el);
-      window.__moveShowcaseCursor = (x, y) => {
-        el.style.transform = `translate(${x}px, ${y}px)`;
+      document.body.appendChild(cursor);
+
+      const rippleRing = (x, y) => {
+        const ring = document.createElement('div');
+        ring.style.cssText = [
+          'position:fixed',
+          `left:${x}px`,
+          `top:${y}px`,
+          'width:16px',
+          'height:16px',
+          'border:3px solid rgba(255,255,255,0.95)',
+          'border-radius:50%',
+          'z-index:2147483646',
+          'pointer-events:none',
+          'box-shadow:0 0 6px rgba(0,0,0,0.6)',
+          'transform:translate(-50%,-50%) scale(0.4)',
+          'opacity:1',
+          'transition:transform 460ms ease-out, opacity 460ms ease-out',
+        ].join(';');
+        document.body.appendChild(ring);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            ring.style.transform = 'translate(-50%,-50%) scale(3)';
+            ring.style.opacity = '0';
+          }),
+        );
+        setTimeout(() => ring.remove(), 520);
+      };
+
+      window.__qqCursor = {
+        move: (x, y) => {
+          cursor.style.transform = `translate(${x}px, ${y}px)`;
+        },
+        press: (x, y) => {
+          rippleRing(x, y);
+          graphic.style.transform = 'scale(0.72)'; // click squash
+          setTimeout(() => {
+            graphic.style.transform = 'scale(1)';
+          }, 150);
+        },
       };
     });
   });
@@ -277,19 +327,28 @@ async function main() {
   const page = await context.newPage();
   await routeAllApi(page);
 
-  /** Glide the fake cursor over an element's center before acting on it. */
-  const hoverOver = async (locator) => {
-    const box = await locator.boundingBox();
-    // offset a touch up-left so the arrow tip, not its corner, sits on the target
+  /**
+   * Glide the fake cursor over an element. The SVG tip sits ~5px in from the
+   * box corner, so offset by that to land the tip on the target's center.
+   */
+  const glideTo = async (box) => {
     await page.evaluate(
-      ([x, y]) => window.__moveShowcaseCursor(x - 3, y - 3),
+      ([x, y]) => window.__qqCursor.move(x - 5, y - 3),
       [box.x + box.width / 2, box.y + box.height / 2],
     );
     await page.waitForTimeout(GIF ? 480 : 120);
   };
 
+  const hoverOver = async (locator) => glideTo(await locator.boundingBox());
+
+  /** Exaggerated click: ripple + squash play out before the real click lands. */
   const click = async (locator) => {
-    await hoverOver(locator);
+    const box = await locator.boundingBox();
+    await glideTo(box);
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    await page.evaluate(([x, y]) => window.__qqCursor.press(x, y), [cx, cy]);
+    await page.waitForTimeout(GIF ? 300 : 80);
     await locator.click();
   };
 
