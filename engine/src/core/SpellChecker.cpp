@@ -52,7 +52,9 @@ std::string SpellChecker::correct(std::string_view word) const
     return suggestions[0]; // return the first suggestion
   }
 
-  return clean; // return the original word if no suggestions are found
+  // No verified candidate exists near this word. Never echo the unknown word
+  // back as its own "suggestion" — it is not in the database.
+  return {};
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)

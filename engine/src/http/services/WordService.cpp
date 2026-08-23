@@ -76,7 +76,13 @@ ServiceResult WordService::search(const std::string &word) const
   if (info.lemma.empty())
   {
     const std::string correctWord = m_checker.correct(sanitized);
-    nlohmann::json body = {{"query", sanitized}, {"found", false}, {"suggestion", correctWord}};
+    nlohmann::json body = {{"query", sanitized}, {"found", false}};
+    // Only attach a suggestion that is a real dictionary entry and not an
+    // echo of the unknown query itself.
+    if (!correctWord.empty() && correctWord != sanitized && m_dict.contains(correctWord))
+    {
+      body["suggestion"] = correctWord;
+    }
     return {body.dump(), 404};
   }
 

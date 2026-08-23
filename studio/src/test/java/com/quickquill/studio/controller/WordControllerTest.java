@@ -38,14 +38,15 @@ public class WordControllerTest {
     }
 
     @Test
-    void shouldReturn404WithSuggestionForMiss() throws Exception {
+    void shouldReturn404WithoutSuggestionForUnknownWord() throws Exception {
       mockMvc
           .perform(get("/api/word/qzwxvqx"))
           .andExpect(status().isNotFound())
           .andExpect(content().contentTypeCompatibleWith("application/json"))
           .andExpect(jsonPath("$.query").value("qzwxvqx"))
           .andExpect(jsonPath("$.found").value(false))
-          .andExpect(jsonPath("$.suggestion").value("qzwxvqx"));
+          // an unknown word must never be suggested as its own correction
+          .andExpect(jsonPath("$.suggestion").doesNotExist());
     }
 
     @Test

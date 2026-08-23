@@ -97,10 +97,10 @@ TEST_CASE("SpellChecker::correct", "[spellchecker]")
     CHECK(result == "dreary");
   }
 
-  SECTION("SpellChecker::correct::returns original when no suggestion")
+  SECTION("SpellChecker::correct::empty when no suggestion exists")
   {
     auto result = checker.correct("zzzzz");
-    CHECK(result == "zzzzz");
+    CHECK(result.empty());
   }
 
   SECTION("SpellChecker::correct::empty for empty input")

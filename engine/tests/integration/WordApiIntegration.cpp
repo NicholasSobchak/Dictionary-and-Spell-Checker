@@ -43,4 +43,15 @@ TEST_CASE("WordService::search", "[integration][api]")
     CHECK((json["found"] == false));
     CHECK(json["suggestion"].is_string());
   }
+
+  SECTION("returns 404 without suggestion for gibberish far from any word")
+  {
+    auto res = service.search("zzzzz");
+
+    REQUIRE((res.status == 404));
+    auto json = nlohmann::json::parse(res.body);
+    CHECK((json["found"] == false));
+    // the unknown word must never be echoed back as its own suggestion
+    CHECK_FALSE(json.contains("suggestion"));
+  }
 }
