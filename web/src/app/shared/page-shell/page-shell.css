@@ -9,7 +9,7 @@
   color: var(--muted);
   text-transform: uppercase;
   /* negative top margin lifts the heading closer to the card's top edge */
-  margin: -12px 0 8px;
+  margin: -24px 0 8px;
   text-align: center;
 }
 
