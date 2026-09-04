@@ -4,7 +4,6 @@ engine/build/
 studio/build/
 studio/.gradle/
 .dictionary.db
-dictionary.db
 .git
 .gitignore
 node_modules/

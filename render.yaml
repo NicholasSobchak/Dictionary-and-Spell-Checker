@@ -1,0 +1,70 @@
+# Render Blueprint for QuickQuill.
+#
+# Deploy: create a new Blueprint in the Render dashboard pointing at this
+# repo; Render provisions the managed Postgres and the two web services below
+# and rebuilds them on push to main.
+#
+# Notes:
+#   * Both services build the existing multi-stage Dockerfile directly; the
+#     native engine (.so) is baked into the backend image by the engine-build
+#     stage, so no extra packaging is needed.
+#   * Backend + frontend are separate services. Render auto-provisions HTTPS;
+#     the frontend nginx speaks plain HTTP:80 to the edge.
+#   * dictionary.db is gitignored, so it is NOT in the repo build context.
+#     For a real deploy it must be provided to the backend build (commit/LFS
+#     it, or mount via a Render Disk at /app/dictionary.db). See README.
+#   * Env values that must be set in the dashboard / secret files:
+#     - DB_USERNAME, DB_PASSWORD (Render Postgres values)
+#     - DB_URL (Render's internal database URL)
+#     - DB_SSLMODE (default disable; Render Postgres usually accepts the
+#       internal URL unchanged, which already selects SSL)
+
+services:
+  - type: web
+    name: quickquill-backend
+    runtime: docker
+    repo: https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerfileTarget: backend
+    plan: starter
+    port: 8080
+    healthCheckPath: /api/word/test
+    envVars:
+      - key: QUICKQUILL_DICTIONARY_PATH
+        value: /app/dictionary.db
+      - key: DB_SSLMODE
+        value: disable
+      - key: DB_URL
+        fromDatabase:
+          name: quickquill-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: quickquill-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: quickquill-db
+          property: password
+
+  - type: web
+    name: quickquill-frontend
+    runtime: docker
+    repo: https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerfileTarget: frontend
+    plan: starter
+    # Activate render.conf, substituting ONLY BACKEND_URL so nginx runtime
+    # variables ($host, $remote_addr, ...) are left untouched, then start
+    # nginx on :80. The stock nginx-alpine entrypoint only envsubst's files in
+    # /etc/nginx/templates, so the template is expanded here explicitly.
+    startCommand: sh -c 'envsubst '"'"'${BACKEND_URL}'"'"' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g "daemon off;"'
+    envVars:
+      - key: BACKEND_URL
+        value: http://quickquill-backend.onrender.com
+
+databases:
+  - name: quickquill-db
+    plan: starter
