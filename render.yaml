@@ -10,9 +10,9 @@
 #     Dockerfile, so the stages are inlined per service here.
 #   * Backend + frontend are separate services. Render auto-provisions HTTPS;
 #     the frontend nginx speaks plain HTTP:80 to the edge.
-#   * dictionary.db is gitignored, so it is NOT in the repo build context.
-#     For a real deploy it must be provided to the backend build (commit/LFS
-#     it, or mount via a Render Disk at /app/dictionary.db). See README.
+#   * dictionary.db is committed to the repo and baked into the backend image.
+#     Free-tier web services have no persistent disk, so the dictionary is
+#     updated by committing a new dictionary.db and redeploying.
 #   * Env values that must be set in the dashboard / secret files:
 #     - DB_USERNAME, DB_PASSWORD (Render Postgres values)
 #     - DB_URL (Render's internal database URL)
@@ -26,7 +26,7 @@ services:
     repo: https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker
     dockerfilePath: ./Dockerfile.backend
     dockerContext: .
-    plan: starter
+    plan: free
     healthCheckPath: /api/word/test
     envVars:
       - key: QUICKQUILL_DICTIONARY_PATH
@@ -52,11 +52,11 @@ services:
     repo: https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker
     dockerfilePath: ./Dockerfile.frontend
     dockerContext: .
-    plan: starter
+    plan: free
     envVars:
       - key: BACKEND_URL
         value: http://quickquill-backend.onrender.com
 
 databases:
   - name: quickquill-db
-    plan: starter
+    plan: free
