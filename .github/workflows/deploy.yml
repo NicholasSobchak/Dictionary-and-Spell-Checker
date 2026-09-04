@@ -70,6 +70,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Ensure deploy directory exists and is writable
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 30s
+          script: |
+            sudo mkdir -p /var/www/quickquill
+            sudo chown -R "$USER": /var/www/quickquill
+
       - name: Upload compose file and deploy script to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
