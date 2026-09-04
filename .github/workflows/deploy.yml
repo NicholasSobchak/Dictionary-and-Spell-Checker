@@ -79,7 +79,11 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME/.ssh"
           umask 077
-          printf '%s' "$SSH_KEY" > "$HOME/.ssh/id_qq"
+          # Some editors/secret UIs add CRLF line endings; OpenSSH/OpenSSL
+          # refuse such keys ("Load key ... error in libcrypto"). Strip any
+          # stray carriage returns before writing.
+          printf '%s' "$SSH_KEY" | tr -d '\r' > "$HOME/.ssh/id_qq"
+          chmod 600 "$HOME/.ssh/id_qq"
           SSH_OPTS="-i $HOME/.ssh/id_qq -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes"
           SSH_TARGET="$SSH_USERNAME@$SSH_HOST"
           # Ensure the target dirs exist and are owned by the SSH user. The
