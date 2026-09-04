@@ -28,6 +28,7 @@ dictionary.zip
 dictionary-db.zip
 dictionary.db-shm
 dictionary.db-wal
+studio/dictionary.db
 
 # File types
 *.o
