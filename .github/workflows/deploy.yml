@@ -78,7 +78,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           timeout: 30s
           script: |
-            sudo mkdir -p /var/www/quickquill
+            sudo mkdir -p /var/www/quickquill/scripts
             sudo chown -R "$USER": /var/www/quickquill
 
       - name: Upload compose file and deploy script to VPS
