@@ -13,11 +13,11 @@
 #   * dictionary.db is committed to the repo and baked into the backend image.
 #     Free-tier web services have no persistent disk, so the dictionary is
 #     updated by committing a new dictionary.db and redeploying.
-#   * Env values that must be set in the dashboard / secret files:
-#     - DB_USERNAME, DB_PASSWORD (Render Postgres values)
-#     - DB_URL (Render's internal database URL)
-#     - DB_SSLMODE (default disable; Render Postgres usually accepts the
-#       internal URL unchanged, which already selects SSL)
+#   * Env values come from the managed database via fromDatabase properties
+#     below (DB_HOST/DB_PORT/DB_NAME/DB_USERNAME/DB_PASSWORD); DB_SSLMODE=require
+#     because Render Postgres requires TLS. The JDBC URL is assembled in
+#     application.properties, and any leftover postgres:// DB_URL connection
+#     string is normalized to jdbc:postgresql://host:5432/db at startup.
 
 services:
   - type: web
@@ -27,7 +27,7 @@ services:
     dockerfilePath: ./Dockerfile.backend
     dockerContext: .
     plan: free
-    healthCheckPath: /api/word/test
+    healthCheckPath: /api/health
     envVars:
       - key: QUICKQUILL_DICTIONARY_PATH
         value: /app/dictionary.db

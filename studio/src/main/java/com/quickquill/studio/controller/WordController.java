@@ -19,6 +19,15 @@ public class WordController {
   }
 
   /**
+   * Liveness probe for Render. Returns 200 unconditionally (it must not depend on dictionary
+   * contents, which are empty in the committed sample DB).
+   */
+  @GetMapping("/health")
+  public ResponseEntity<String> health() {
+    return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body("{\"status\":\"ok\"}");
+  }
+
+  /**
    * Look up a word in the dictionary. Returns 200 with full word JSON on hit, 404 with a suggestion
    * on miss, or 400 with an error for invalid input.
    */
