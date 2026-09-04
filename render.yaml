@@ -5,9 +5,9 @@
 # and rebuilds them on push to main.
 #
 # Notes:
-#   * Both services build the existing multi-stage Dockerfile directly; the
-#     native engine (.so) is baked into the backend image by the engine-build
-#     stage, so no extra packaging is needed.
+#   * Each service builds a dedicated, self-contained Dockerfile (.backend /
+#     .frontend). Render Blueprints cannot select a stage of a multi-stage
+#     Dockerfile, so the stages are inlined per service here.
 #   * Backend + frontend are separate services. Render auto-provisions HTTPS;
 #     the frontend nginx speaks plain HTTP:80 to the edge.
 #   * dictionary.db is gitignored, so it is NOT in the repo build context.
@@ -24,11 +24,9 @@ services:
     name: quickquill-backend
     runtime: docker
     repo: https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.backend
     dockerContext: .
-    dockerfileTarget: backend
     plan: starter
-    port: 8080
     healthCheckPath: /api/word/test
     envVars:
       - key: QUICKQUILL_DICTIONARY_PATH
@@ -52,9 +50,8 @@ services:
     name: quickquill-frontend
     runtime: docker
     repo: https://github.com/nickczak/QuickQuill-Dictionary-SpellChecker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.frontend
     dockerContext: .
-    dockerfileTarget: frontend
     plan: starter
     # Activate render.conf, substituting ONLY BACKEND_URL so nginx runtime
     # variables ($host, $remote_addr, ...) are left untouched, then start
