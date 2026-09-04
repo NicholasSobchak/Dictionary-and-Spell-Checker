@@ -53,7 +53,7 @@ public class SuggestedWordControllerTest {
   }
 
   private void sync(String token, String... words) throws Exception {
-    var request = post("/api/suggested-words/sync").param("token", token);
+    var request = post("/api/suggested-words/sync").header("Authorization", "Bearer " + token);
     for (String word : words) {
       request.param("word", word);
     }
@@ -73,7 +73,7 @@ public class SuggestedWordControllerTest {
       String token = loginAndExtractToken("sugg@test.com", "pass123");
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -90,7 +90,7 @@ public class SuggestedWordControllerTest {
       sync(token, "gamma");
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(3))
           .andExpect(jsonPath("$[0]").value("gamma"))
@@ -101,7 +101,7 @@ public class SuggestedWordControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(get("/api/suggested-words").param("token", "bogus-token"))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -123,7 +123,7 @@ public class SuggestedWordControllerTest {
       sync(token, "apple", "banana", "cherry");
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(3));
     }
@@ -136,7 +136,7 @@ public class SuggestedWordControllerTest {
       sync(token, "apple", "apple");
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1))
           .andExpect(jsonPath("$[0]").value("apple"));
@@ -150,7 +150,7 @@ public class SuggestedWordControllerTest {
       sync(token);
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -163,7 +163,7 @@ public class SuggestedWordControllerTest {
       sync(token, "apple", "", "  ");
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1))
           .andExpect(jsonPath("$[0]").value("apple"));
@@ -173,7 +173,9 @@ public class SuggestedWordControllerTest {
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
           .perform(
-              post("/api/suggested-words/sync").param("token", "bogus-token").param("word", "x"))
+              post("/api/suggested-words/sync")
+                  .header("Authorization", "Bearer bogus-token")
+                  .param("word", "x"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -197,12 +199,12 @@ public class SuggestedWordControllerTest {
       sync(token, "apple", "banana");
 
       mockMvc
-          .perform(delete("/api/suggested-words").param("token", token))
+          .perform(delete("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value("Suggested words cleared."));
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -210,7 +212,7 @@ public class SuggestedWordControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(delete("/api/suggested-words").param("token", "bogus-token"))
+          .perform(delete("/api/suggested-words").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -236,7 +238,7 @@ public class SuggestedWordControllerTest {
       sync(token, "final-word");
 
       mockMvc
-          .perform(get("/api/suggested-words").param("token", token))
+          .perform(get("/api/suggested-words").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1000));
     }

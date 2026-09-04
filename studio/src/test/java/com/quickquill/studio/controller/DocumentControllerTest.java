@@ -49,7 +49,10 @@ public class DocumentControllerTest {
   private long createDocument(String token, String title) throws Exception {
     String response =
         mockMvc
-            .perform(post("/api/documents").param("token", token).param("title", title))
+            .perform(
+                post("/api/documents")
+                    .header("Authorization", "Bearer " + token)
+                    .param("title", title))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -67,7 +70,7 @@ public class DocumentControllerTest {
       String token = loginAndExtractToken("docs1@test.com", "pass123");
 
       mockMvc
-          .perform(get("/api/documents").param("token", token))
+          .perform(get("/api/documents").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -80,7 +83,7 @@ public class DocumentControllerTest {
       createDocument(token, "Second");
 
       mockMvc
-          .perform(get("/api/documents").param("token", token))
+          .perform(get("/api/documents").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0].id").isNumber())
@@ -93,7 +96,7 @@ public class DocumentControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(get("/api/documents").param("token", "bogus-token"))
+          .perform(get("/api/documents").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -113,7 +116,10 @@ public class DocumentControllerTest {
       String token = loginAndExtractToken("docs3@test.com", "pass123");
 
       mockMvc
-          .perform(post("/api/documents").param("token", token).param("title", "My Story"))
+          .perform(
+              post("/api/documents")
+                  .header("Authorization", "Bearer " + token)
+                  .param("title", "My Story"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.id").isNumber())
           .andExpect(jsonPath("$.title").value("My Story"))
@@ -121,7 +127,7 @@ public class DocumentControllerTest {
           .andExpect(jsonPath("$.updatedAt").exists());
 
       mockMvc
-          .perform(get("/api/documents").param("token", token))
+          .perform(get("/api/documents").header("Authorization", "Bearer " + token))
           .andExpect(jsonPath("$.length()").value(1))
           .andExpect(jsonPath("$[0].title").value("My Story"));
     }
@@ -132,7 +138,7 @@ public class DocumentControllerTest {
       String token = loginAndExtractToken("docs4@test.com", "pass123");
 
       mockMvc
-          .perform(post("/api/documents").param("token", token))
+          .perform(post("/api/documents").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.title").value("Untitled"));
     }
@@ -143,7 +149,10 @@ public class DocumentControllerTest {
       String token = loginAndExtractToken("docs5@test.com", "pass123");
 
       mockMvc
-          .perform(post("/api/documents").param("token", token).param("title", "   "))
+          .perform(
+              post("/api/documents")
+                  .header("Authorization", "Bearer " + token)
+                  .param("title", "   "))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.title").value("Untitled"));
     }
@@ -151,7 +160,7 @@ public class DocumentControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(post("/api/documents").param("token", "bogus-token"))
+          .perform(post("/api/documents").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
   }
@@ -166,10 +175,13 @@ public class DocumentControllerTest {
       String token = loginAndExtractToken("docs6@test.com", "pass123");
       long id = createDocument(token, "Notes");
 
-      mockMvc.perform(put("/api/documents/" + id).param("token", token).param("content", "abc"));
+      mockMvc.perform(
+          put("/api/documents/" + id)
+              .header("Authorization", "Bearer " + token)
+              .param("content", "abc"));
 
       mockMvc
-          .perform(get("/api/documents/" + id).param("token", token))
+          .perform(get("/api/documents/" + id).header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.id").value(id))
           .andExpect(jsonPath("$.title").value("Notes"))
@@ -183,7 +195,7 @@ public class DocumentControllerTest {
       String token = loginAndExtractToken("docs7@test.com", "pass123");
 
       mockMvc
-          .perform(get("/api/documents/999999").param("token", token))
+          .perform(get("/api/documents/999999").header("Authorization", "Bearer " + token))
           .andExpect(status().isNotFound());
     }
 
@@ -197,14 +209,14 @@ public class DocumentControllerTest {
       String otherToken = loginAndExtractToken("docs9@test.com", "pass123");
 
       mockMvc
-          .perform(get("/api/documents/" + id).param("token", otherToken))
+          .perform(get("/api/documents/" + id).header("Authorization", "Bearer " + otherToken))
           .andExpect(status().isNotFound());
     }
 
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(get("/api/documents/1").param("token", "bogus-token"))
+          .perform(get("/api/documents/1").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
   }
@@ -220,13 +232,16 @@ public class DocumentControllerTest {
       long id = createDocument(token, "Draft");
 
       mockMvc
-          .perform(put("/api/documents/" + id).param("token", token).param("content", "hello doc"))
+          .perform(
+              put("/api/documents/" + id)
+                  .header("Authorization", "Bearer " + token)
+                  .param("content", "hello doc"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.id").value(id))
           .andExpect(jsonPath("$.content").value("hello doc"));
 
       mockMvc
-          .perform(get("/api/documents/" + id).param("token", token))
+          .perform(get("/api/documents/" + id).header("Authorization", "Bearer " + token))
           .andExpect(jsonPath("$.content").value("hello doc"));
     }
 
@@ -236,11 +251,17 @@ public class DocumentControllerTest {
       String token = loginAndExtractToken("docs11@test.com", "pass123");
       long id = createDocument(token, "Draft");
 
-      mockMvc.perform(put("/api/documents/" + id).param("token", token).param("content", "first"));
-      mockMvc.perform(put("/api/documents/" + id).param("token", token).param("content", "second"));
+      mockMvc.perform(
+          put("/api/documents/" + id)
+              .header("Authorization", "Bearer " + token)
+              .param("content", "first"));
+      mockMvc.perform(
+          put("/api/documents/" + id)
+              .header("Authorization", "Bearer " + token)
+              .param("content", "second"));
 
       mockMvc
-          .perform(get("/api/documents/" + id).param("token", token))
+          .perform(get("/api/documents/" + id).header("Authorization", "Bearer " + token))
           .andExpect(jsonPath("$.content").value("second"));
     }
 
@@ -254,14 +275,20 @@ public class DocumentControllerTest {
       String otherToken = loginAndExtractToken("docs13@test.com", "pass123");
 
       mockMvc
-          .perform(put("/api/documents/" + id).param("token", otherToken).param("content", "x"))
+          .perform(
+              put("/api/documents/" + id)
+                  .header("Authorization", "Bearer " + otherToken)
+                  .param("content", "x"))
           .andExpect(status().isNotFound());
     }
 
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(put("/api/documents/1").param("token", "bogus-token").param("content", "x"))
+          .perform(
+              put("/api/documents/1")
+                  .header("Authorization", "Bearer bogus-token")
+                  .param("content", "x"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -272,7 +299,7 @@ public class DocumentControllerTest {
       long id = createDocument(token, "Draft");
 
       mockMvc
-          .perform(put("/api/documents/" + id).param("token", token))
+          .perform(put("/api/documents/" + id).header("Authorization", "Bearer " + token))
           .andExpect(status().isBadRequest());
     }
   }
@@ -290,14 +317,14 @@ public class DocumentControllerTest {
       mockMvc
           .perform(
               post("/api/documents/" + id + "/rename")
-                  .param("token", token)
+                  .header("Authorization", "Bearer " + token)
                   .param("title", "New Name"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.id").value(id))
           .andExpect(jsonPath("$.title").value("New Name"));
 
       mockMvc
-          .perform(get("/api/documents/" + id).param("token", token))
+          .perform(get("/api/documents/" + id).header("Authorization", "Bearer " + token))
           .andExpect(jsonPath("$.title").value("New Name"));
     }
 
@@ -313,7 +340,7 @@ public class DocumentControllerTest {
       mockMvc
           .perform(
               post("/api/documents/" + id + "/rename")
-                  .param("token", otherToken)
+                  .header("Authorization", "Bearer " + otherToken)
                   .param("title", "Hacked"))
           .andExpect(status().isNotFound());
     }
@@ -325,7 +352,8 @@ public class DocumentControllerTest {
       long id = createDocument(token, "Draft");
 
       mockMvc
-          .perform(post("/api/documents/" + id + "/rename").param("token", token))
+          .perform(
+              post("/api/documents/" + id + "/rename").header("Authorization", "Bearer " + token))
           .andExpect(status().isBadRequest());
     }
   }
@@ -341,16 +369,16 @@ public class DocumentControllerTest {
       long id = createDocument(token, "Doomed");
 
       mockMvc
-          .perform(delete("/api/documents/" + id).param("token", token))
+          .perform(delete("/api/documents/" + id).header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value("Document deleted."));
 
       mockMvc
-          .perform(get("/api/documents/" + id).param("token", token))
+          .perform(get("/api/documents/" + id).header("Authorization", "Bearer " + token))
           .andExpect(status().isNotFound());
 
       mockMvc
-          .perform(get("/api/documents").param("token", token))
+          .perform(get("/api/documents").header("Authorization", "Bearer " + token))
           .andExpect(jsonPath("$.length()").value(0));
     }
 
@@ -364,12 +392,12 @@ public class DocumentControllerTest {
       String otherToken = loginAndExtractToken("docs21@test.com", "pass123");
 
       mockMvc
-          .perform(delete("/api/documents/" + id).param("token", otherToken))
+          .perform(delete("/api/documents/" + id).header("Authorization", "Bearer " + otherToken))
           .andExpect(status().isNotFound());
 
       // The owner's document survives the foreign delete attempt.
       mockMvc
-          .perform(get("/api/documents/" + id).param("token", ownerToken))
+          .perform(get("/api/documents/" + id).header("Authorization", "Bearer " + ownerToken))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.title").value("Keep me"));
     }
@@ -377,7 +405,7 @@ public class DocumentControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(delete("/api/documents/1").param("token", "bogus-token"))
+          .perform(delete("/api/documents/1").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
   }

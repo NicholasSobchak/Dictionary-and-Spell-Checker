@@ -1,5 +1,6 @@
 package com.quickquill.studio.controller;
 
+import com.quickquill.studio.config.AuthToken;
 import com.quickquill.studio.service.SuggestedWordService;
 import java.util.List;
 import java.util.Map;
@@ -18,22 +19,24 @@ public class SuggestedWordController {
 
   /** Returns the authenticated user's suggested words, most recent first. */
   @GetMapping
-  public ResponseEntity<?> getWords(@RequestParam String token) {
-    return ResponseEntity.ok(suggestedWordService.getWords(token));
+  public ResponseEntity<?> getWords(@RequestHeader("Authorization") String authorization) {
+    return ResponseEntity.ok(suggestedWordService.getWords(AuthToken.fromHeader(authorization)));
   }
 
   /** Records many words at once (used to store synonyms and backfill after login). */
   @PostMapping("/sync")
   public ResponseEntity<?> sync(
-      @RequestParam String token, @RequestParam(required = false) List<String> word) {
-    suggestedWordService.recordAll(token, word == null ? List.of() : word);
+      @RequestHeader("Authorization") String authorization,
+      @RequestParam(required = false) List<String> word) {
+    suggestedWordService.recordAll(
+        AuthToken.fromHeader(authorization), word == null ? List.of() : word);
     return ResponseEntity.ok(Map.of("message", "Suggested words synced."));
   }
 
   /** Clears the authenticated user's suggested words. */
   @DeleteMapping
-  public ResponseEntity<?> clear(@RequestParam String token) {
-    suggestedWordService.clear(token);
+  public ResponseEntity<?> clear(@RequestHeader("Authorization") String authorization) {
+    suggestedWordService.clear(AuthToken.fromHeader(authorization));
     return ResponseEntity.ok(Map.of("message", "Suggested words cleared."));
   }
 }

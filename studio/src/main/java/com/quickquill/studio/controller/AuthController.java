@@ -1,5 +1,6 @@
 package com.quickquill.studio.controller;
 
+import com.quickquill.studio.config.AuthToken;
 import com.quickquill.studio.model.Session;
 import com.quickquill.studio.model.User;
 import com.quickquill.studio.service.AuthService;
@@ -36,48 +37,50 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<?> logout(@RequestParam String token) {
-    authService.logout(token);
+  public ResponseEntity<?> logout(@RequestHeader("Authorization") String authorization) {
+    authService.logout(AuthToken.fromHeader(authorization));
     return ResponseEntity.ok(Map.of("message", "User logged out successfully."));
   }
 
   /** Extends the session's expiry. Called by the client on app start to keep sessions alive. */
   @PostMapping("/refresh")
   // IllegalArgumentException (invalid/expired token) → GlobalExceptionHandler → 401
-  public ResponseEntity<?> refresh(@RequestParam String token) {
-    Session session = authService.refreshSession(token);
+  public ResponseEntity<?> refresh(@RequestHeader("Authorization") String authorization) {
+    Session session = authService.refreshSession(AuthToken.fromHeader(authorization));
     return ResponseEntity.ok(sessionResponse(session, "Session refreshed."));
   }
 
   @PostMapping("/change-password")
   // IllegalArgumentException (wrong password / invalid token) → GlobalExceptionHandler → 401
   public ResponseEntity<?> changePassword(
-      @RequestParam String token,
+      @RequestHeader("Authorization") String authorization,
       @RequestParam String oldPassword,
       @RequestParam String newPassword) {
-    authService.changePassword(token, oldPassword, newPassword);
+    authService.changePassword(AuthToken.fromHeader(authorization), oldPassword, newPassword);
     return ResponseEntity.ok(Map.of("message", "Password changed successfully."));
   }
 
   @PostMapping("/delete-account")
   // IllegalArgumentException (invalid token) → GlobalExceptionHandler → 401
-  public ResponseEntity<?> deleteAccount(@RequestParam String token) {
-    authService.deleteAccount(token);
+  public ResponseEntity<?> deleteAccount(@RequestHeader("Authorization") String authorization) {
+    authService.deleteAccount(AuthToken.fromHeader(authorization));
     return ResponseEntity.ok(Map.of("message", "Account deleted successfully."));
   }
 
   @PostMapping("/update")
   // IllegalArgumentException (email taken) → GlobalExceptionHandler → 409
   public ResponseEntity<?> update(
-      @RequestParam String token, @RequestParam String displayName, @RequestParam String email) {
-    User user = authService.updateProfile(token, displayName, email);
+      @RequestHeader("Authorization") String authorization,
+      @RequestParam String displayName,
+      @RequestParam String email) {
+    User user = authService.updateProfile(AuthToken.fromHeader(authorization), displayName, email);
     return ResponseEntity.ok(userJson(user));
   }
 
   @GetMapping("/me")
   // IllegalArgumentException (invalid/expired token) → GlobalExceptionHandler → 401
-  public ResponseEntity<?> me(@RequestParam String token) {
-    User user = authService.validateSession(token);
+  public ResponseEntity<?> me(@RequestHeader("Authorization") String authorization) {
+    User user = authService.validateSession(AuthToken.fromHeader(authorization));
     return ResponseEntity.ok(userJson(user));
   }
 

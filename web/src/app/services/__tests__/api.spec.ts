@@ -1,5 +1,9 @@
 import { HttpRequest, provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  TestRequest,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs'; // converts an observable to a promise (subscribes, waits for the first emission, unsubscribes
 // unsubscribes, and resolves the promise with that value)
@@ -20,6 +24,11 @@ describe('Api', () => {
 
   /** Matches a request by path only, ignoring query params. */
   const byUrl = (url: string) => (req: HttpRequest<unknown>) => req.url === url;
+
+  /** Asserts the request carries the session token as a Bearer Authorization header. */
+  const expectAuth = (req: TestRequest, token = 't0ken') => {
+    expect(req.request.headers.get('Authorization')).toBe(`Bearer ${token}`);
+  };
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -138,71 +147,77 @@ describe('Api', () => {
       expect(await promise).toEqual(TEST_SESSION);
     });
 
-    it('logout posts the session token', async () => {
+    it('logout sends the session token as a bearer header', async () => {
       const promise = firstValueFrom(api.logout('t0ken'));
 
       const req = httpMock.expectOne('/api/auth/logout');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.body).toBeNull();
       req.flush({ message: 'User logged out successfully.' });
 
       expect((await promise).message).toBe('User logged out successfully.');
     });
 
-    it('refresh posts the token and returns a new session', async () => {
+    it('refresh sends the token as a bearer header and returns a new session', async () => {
       const promise = firstValueFrom(api.refresh('t0ken'));
 
       const req = httpMock.expectOne('/api/auth/refresh');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.body).toBeNull();
       req.flush(TEST_SESSION);
 
       expect(await promise).toEqual(TEST_SESSION);
     });
 
-    it('me GETs the profile with the token as a query param', async () => {
+    it('me GETs the profile with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.me('t0ken'));
 
       const req = httpMock.expectOne(byUrl('/api/auth/me'));
       expect(req.request.method).toBe('GET');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush(TEST_USER);
 
       expect(await promise).toEqual(TEST_USER);
     });
 
-    it('updateProfile posts the token, display name, and email', async () => {
+    it('updateProfile posts the token as a bearer header, display name, and email', async () => {
       const promise = firstValueFrom(api.updateProfile('t0ken', 'New Name', 'new@test.com'));
 
       const req = httpMock.expectOne('/api/auth/update');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
       expect(req.request.body.get('displayName')).toBe('New Name');
       expect(req.request.body.get('email')).toBe('new@test.com');
+      expect(req.request.body.get('token')).toBeNull();
       req.flush(TEST_USER);
 
       expect(await promise).toEqual(TEST_USER);
     });
 
-    it('changePassword posts the old and new password', async () => {
+    it('changePassword sends the token as a bearer header plus old and new password', async () => {
       const promise = firstValueFrom(api.changePassword('t0ken', 'oldpassword', 'newpassword'));
 
       const req = httpMock.expectOne('/api/auth/change-password');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
       expect(req.request.body.get('oldPassword')).toBe('oldpassword');
       expect(req.request.body.get('newPassword')).toBe('newpassword');
+      expect(req.request.body.get('token')).toBeNull();
       req.flush({ message: 'Password changed successfully.' });
 
       expect((await promise).message).toBe('Password changed successfully.');
     });
 
-    it('deleteAccount posts the token', async () => {
+    it('deleteAccount sends the token as a bearer header', async () => {
       const promise = firstValueFrom(api.deleteAccount('t0ken'));
 
       const req = httpMock.expectOne('/api/auth/delete-account');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.body).toBeNull();
       req.flush({ message: 'Account deleted successfully.' });
 
       expect((await promise).message).toBe('Account deleted successfully.');
@@ -210,24 +225,26 @@ describe('Api', () => {
   });
 
   describe('document endpoints', () => {
-    it('listDocuments GETs with the token as a query param', async () => {
+    it('listDocuments GETs with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.listDocuments('t0ken'));
 
       const req = httpMock.expectOne(byUrl('/api/documents'));
       expect(req.request.method).toBe('GET');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush([TEST_DOCUMENT]);
 
       expect(await promise).toEqual([TEST_DOCUMENT]);
     });
 
-    it('createDocument POSTs the title when given', async () => {
+    it('createDocument POSTs the title when given, with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.createDocument('t0ken', 'My Story'));
 
       const req = httpMock.expectOne('/api/documents');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
       expect(req.request.body.get('title')).toBe('My Story');
+      expect(req.request.body.get('token')).toBeNull();
       req.flush(TEST_DOCUMENT);
 
       expect(await promise).toEqual(TEST_DOCUMENT);
@@ -238,30 +255,33 @@ describe('Api', () => {
 
       const req = httpMock.expectOne('/api/documents');
       expect(req.request.method).toBe('POST');
+      expectAuth(req);
       expect(req.request.params.get('title')).toBeNull();
       req.flush(TEST_DOCUMENT);
 
       expect(await promise).toEqual(TEST_DOCUMENT);
     });
 
-    it('getDocument GETs by id with the token as a query param', async () => {
+    it('getDocument GETs by id with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.getDocument('t0ken', 1));
 
       const req = httpMock.expectOne(byUrl('/api/documents/1'));
       expect(req.request.method).toBe('GET');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush(TEST_DOCUMENT);
 
       expect(await promise).toEqual(TEST_DOCUMENT);
     });
 
-    it('saveDocument PUTs the content in the body', async () => {
+    it('saveDocument PUTs the content in the body, with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.saveDocument('t0ken', 1, 'my note'));
 
       const req = httpMock.expectOne('/api/documents/1');
       expect(req.request.method).toBe('PUT');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
       expect(req.request.body.get('content')).toBe('my note');
+      expect(req.request.body.get('token')).toBeNull();
       req.flush(TEST_DOCUMENT);
 
       expect(await promise).toEqual(TEST_DOCUMENT);
@@ -272,19 +292,21 @@ describe('Api', () => {
 
       const req = httpMock.expectOne('/api/documents/1/rename');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
       expect(req.request.body.get('title')).toBe('Renamed');
+      expect(req.request.body.get('token')).toBeNull();
       req.flush(TEST_DOCUMENT);
 
       expect(await promise).toEqual(TEST_DOCUMENT);
     });
 
-    it('deleteDocument DELETEs by id with the token', async () => {
+    it('deleteDocument DELETEs by id with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.deleteDocument('t0ken', 1));
 
       const req = httpMock.expectOne(byUrl('/api/documents/1'));
       expect(req.request.method).toBe('DELETE');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush({ message: 'Document deleted.' });
 
       expect((await promise).message).toBe('Document deleted.');
@@ -292,46 +314,50 @@ describe('Api', () => {
   });
 
   describe('per-user endpoints', () => {
-    it('getSearchHistory GETs with the token as a query param', async () => {
+    it('getSearchHistory GETs with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.getSearchHistory('t0ken'));
 
       const req = httpMock.expectOne(byUrl('/api/search-history'));
       expect(req.request.method).toBe('GET');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush(['apple', 'banana']);
 
       expect(await promise).toEqual(['apple', 'banana']);
     });
 
-    it('recordSearch POSTs the word in the body', async () => {
+    it('recordSearch POSTs the word in the body, with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.recordSearch('t0ken', 'apple'));
 
       const req = httpMock.expectOne('/api/search-history');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
       expect(req.request.body.get('word')).toBe('apple');
+      expect(req.request.body.get('token')).toBeNull();
       req.flush({ message: 'Search recorded.' });
 
       expect((await promise).message).toBe('Search recorded.');
     });
 
-    it('clearSearchHistory DELETEs with the token', async () => {
+    it('clearSearchHistory DELETEs with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.clearSearchHistory('t0ken'));
 
       const req = httpMock.expectOne(byUrl('/api/search-history'));
       expect(req.request.method).toBe('DELETE');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush({ message: 'Search history cleared.' });
 
       expect((await promise).message).toBe('Search history cleared.');
     });
 
-    it('getSuggestedWords GETs with the token as a query param', async () => {
+    it('getSuggestedWords GETs with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.getSuggestedWords('t0ken'));
 
       const req = httpMock.expectOne(byUrl('/api/suggested-words'));
       expect(req.request.method).toBe('GET');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush(['syn1']);
 
       expect(await promise).toEqual(['syn1']);
@@ -342,19 +368,21 @@ describe('Api', () => {
 
       const req = httpMock.expectOne('/api/suggested-words/sync');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body.get('token')).toBe('t0ken');
+      expectAuth(req);
       expect(req.request.body.getAll('word')).toEqual(['hi', 'hey']);
+      expect(req.request.body.get('token')).toBeNull();
       req.flush({ message: 'Suggested words synced.' });
 
       expect((await promise).message).toBe('Suggested words synced.');
     });
 
-    it('clearSuggestedWords DELETEs with the token', async () => {
+    it('clearSuggestedWords DELETEs with the token as a bearer header', async () => {
       const promise = firstValueFrom(api.clearSuggestedWords('t0ken'));
 
       const req = httpMock.expectOne(byUrl('/api/suggested-words'));
       expect(req.request.method).toBe('DELETE');
-      expect(req.request.params.get('token')).toBe('t0ken');
+      expectAuth(req);
+      expect(req.request.params.get('token')).toBeNull();
       req.flush({ message: 'Suggested words cleared.' });
 
       expect((await promise).message).toBe('Suggested words cleared.');

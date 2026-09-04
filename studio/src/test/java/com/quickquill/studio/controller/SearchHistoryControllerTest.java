@@ -56,7 +56,10 @@ public class SearchHistoryControllerTest {
 
   private void record(String token, String word) throws Exception {
     mockMvc
-        .perform(post("/api/search-history").param("token", token).param("word", word))
+        .perform(
+            post("/api/search-history")
+                .header("Authorization", "Bearer " + token)
+                .param("word", word))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.message").value("Search recorded."));
   }
@@ -71,7 +74,7 @@ public class SearchHistoryControllerTest {
       String token = loginAndExtractToken("history@test.com", "pass123");
 
       mockMvc
-          .perform(get("/api/search-history").param("token", token))
+          .perform(get("/api/search-history").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -88,7 +91,7 @@ public class SearchHistoryControllerTest {
       record(token, "cherry");
 
       mockMvc
-          .perform(get("/api/search-history").param("token", token))
+          .perform(get("/api/search-history").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(3))
           .andExpect(jsonPath("$[0]").value("cherry"))
@@ -108,7 +111,7 @@ public class SearchHistoryControllerTest {
       record(token, "apple");
 
       mockMvc
-          .perform(get("/api/search-history").param("token", token))
+          .perform(get("/api/search-history").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(2))
           .andExpect(jsonPath("$[0]").value("apple"))
@@ -118,7 +121,7 @@ public class SearchHistoryControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(get("/api/search-history").param("token", "bogus-token"))
+          .perform(get("/api/search-history").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -140,7 +143,7 @@ public class SearchHistoryControllerTest {
       record(token, "hello");
 
       mockMvc
-          .perform(get("/api/search-history").param("token", token))
+          .perform(get("/api/search-history").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(1))
           .andExpect(jsonPath("$[0]").value("hello"));
@@ -149,7 +152,10 @@ public class SearchHistoryControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(post("/api/search-history").param("token", "bogus-token").param("word", "hello"))
+          .perform(
+              post("/api/search-history")
+                  .header("Authorization", "Bearer bogus-token")
+                  .param("word", "hello"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -172,12 +178,12 @@ public class SearchHistoryControllerTest {
       record(token, "banana");
 
       mockMvc
-          .perform(delete("/api/search-history").param("token", token))
+          .perform(delete("/api/search-history").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value("Search history cleared."));
 
       mockMvc
-          .perform(get("/api/search-history").param("token", token))
+          .perform(get("/api/search-history").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(0));
     }
@@ -185,7 +191,7 @@ public class SearchHistoryControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(delete("/api/search-history").param("token", "bogus-token"))
+          .perform(delete("/api/search-history").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -211,7 +217,7 @@ public class SearchHistoryControllerTest {
       record(token, "final-word");
 
       mockMvc
-          .perform(get("/api/search-history").param("token", token))
+          .perform(get("/api/search-history").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.length()").value(500));
     }

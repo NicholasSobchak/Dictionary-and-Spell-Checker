@@ -132,7 +132,7 @@ public class AuthControllerTest {
       String token = loginAndExtractToken("logout@test.com", "pass123");
 
       mockMvc
-          .perform(post("/api/auth/logout").param("token", token))
+          .perform(post("/api/auth/logout").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value("User logged out successfully."));
     }
@@ -140,7 +140,7 @@ public class AuthControllerTest {
     @Test
     void shouldHandleLogoutWithInvalidToken() throws Exception {
       mockMvc
-          .perform(post("/api/auth/logout").param("token", "bogus-token"))
+          .perform(post("/api/auth/logout").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isOk());
     }
   }
@@ -155,7 +155,7 @@ public class AuthControllerTest {
       String token = loginAndExtractToken("refresh@test.com", "pass123");
 
       mockMvc
-          .perform(post("/api/auth/refresh").param("token", token))
+          .perform(post("/api/auth/refresh").header("Authorization", "Bearer " + token))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.token").isNotEmpty())
           .andExpect(jsonPath("$.message").value("Session refreshed."));
@@ -164,7 +164,7 @@ public class AuthControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(post("/api/auth/refresh").param("token", "bogus-token"))
+          .perform(post("/api/auth/refresh").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized())
           .andExpect(jsonPath("$.error").value("Invalid session."));
     }
@@ -181,7 +181,8 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/change-password")
-                  .param("token", loginAndExtractToken("chg@test.com", "oldpass"))
+                  .header(
+                      "Authorization", "Bearer " + loginAndExtractToken("chg@test.com", "oldpass"))
                   .param("oldPassword", "oldpass")
                   .param("newPassword", "newpass"))
           .andExpect(status().isOk())
@@ -207,7 +208,9 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/change-password")
-                  .param("token", loginAndExtractToken("chg2@test.com", "realpass"))
+                  .header(
+                      "Authorization",
+                      "Bearer " + loginAndExtractToken("chg2@test.com", "realpass"))
                   .param("oldPassword", "wrongpass")
                   .param("newPassword", "newpass"))
           .andExpect(status().isUnauthorized())
@@ -219,7 +222,7 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/change-password")
-                  .param("token", "bogus-token")
+                  .header("Authorization", "Bearer bogus-token")
                   .param("oldPassword", "old")
                   .param("newPassword", "new"))
           .andExpect(status().isUnauthorized());
@@ -237,7 +240,8 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/delete-account")
-                  .param("token", loginAndExtractToken("del@test.com", "pass123")))
+                  .header(
+                      "Authorization", "Bearer " + loginAndExtractToken("del@test.com", "pass123")))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.message").value("Account deleted successfully."));
 
@@ -251,7 +255,7 @@ public class AuthControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(post("/api/auth/delete-account").param("token", "bogus-token"))
+          .perform(post("/api/auth/delete-account").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
   }
@@ -266,7 +270,9 @@ public class AuthControllerTest {
 
       mockMvc
           .perform(
-              get("/api/auth/me").param("token", loginAndExtractToken("me@test.com", "pass123")))
+              get("/api/auth/me")
+                  .header(
+                      "Authorization", "Bearer " + loginAndExtractToken("me@test.com", "pass123")))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.email").value("me@test.com"))
           .andExpect(jsonPath("$.displayName").value("Me User"))
@@ -276,7 +282,7 @@ public class AuthControllerTest {
     @Test
     void shouldReturn401ForInvalidToken() throws Exception {
       mockMvc
-          .perform(get("/api/auth/me").param("token", "bogus-token"))
+          .perform(get("/api/auth/me").header("Authorization", "Bearer bogus-token"))
           .andExpect(status().isUnauthorized());
     }
 
@@ -285,10 +291,10 @@ public class AuthControllerTest {
       signup("me2@test.com", "pass123", "Me2 User");
       String token = loginAndExtractToken("me2@test.com", "pass123");
 
-      mockMvc.perform(post("/api/auth/logout").param("token", token));
+      mockMvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + token));
 
       mockMvc
-          .perform(get("/api/auth/me").param("token", token))
+          .perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
           .andExpect(status().isUnauthorized());
     }
   }
@@ -304,7 +310,8 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/update")
-                  .param("token", loginAndExtractToken("upd@test.com", "pass123"))
+                  .header(
+                      "Authorization", "Bearer " + loginAndExtractToken("upd@test.com", "pass123"))
                   .param("displayName", "New Name")
                   .param("email", "upd@test.com"))
           .andExpect(status().isOk())
@@ -319,7 +326,8 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/update")
-                  .param("token", loginAndExtractToken("upd2@test.com", "pass123"))
+                  .header(
+                      "Authorization", "Bearer " + loginAndExtractToken("upd2@test.com", "pass123"))
                   .param("displayName", "Upd2 User")
                   .param("email", "newupd2@test.com"))
           .andExpect(status().isOk())
@@ -334,7 +342,9 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/update")
-                  .param("token", loginAndExtractToken("updater@test.com", "pass123"))
+                  .header(
+                      "Authorization",
+                      "Bearer " + loginAndExtractToken("updater@test.com", "pass123"))
                   .param("displayName", "Updater")
                   .param("email", "taken@test.com"))
           .andExpect(status().isConflict());
@@ -345,7 +355,7 @@ public class AuthControllerTest {
       mockMvc
           .perform(
               post("/api/auth/update")
-                  .param("token", "bogus-token")
+                  .header("Authorization", "Bearer bogus-token")
                   .param("displayName", "X")
                   .param("email", "x@test.com"))
           .andExpect(status().isUnauthorized());
