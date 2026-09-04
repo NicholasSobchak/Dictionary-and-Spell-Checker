@@ -15,9 +15,10 @@ import org.springframework.core.env.MapPropertySource;
  * (jdbc:postgresql://...) before Spring creates the DataSource.
  *
  * <p>Render's fromDatabase connectionString uses the libpq postgres:// scheme, which Hikari rejects
- * ("'url' must start with \"jdbc\""). This normalizes the resolved spring.datasource.url no matter
- * whether it came from the blueprint's per-part env vars (already JDBC) or from a stale raw
- * connection string.
+ * ("'url' must start with \"jdbc\"") and whose embedded credentials the JDBC driver cannot parse.
+ * This rewrites the resolved spring.datasource.url into a plain jdbc:postgresql://host:port/db URL
+ * (credentials come from spring.datasource.username/password), no matter whether it came from the
+ * blueprint's per-part env vars (already JDBC) or from a stale raw connection string.
  */
 @Configuration
 public class DataSourceUrlNormalizer implements EnvironmentAware, BeanFactoryPostProcessor {
@@ -50,12 +51,29 @@ public class DataSourceUrlNormalizer implements EnvironmentAware, BeanFactoryPos
   }
 
   static String normalize(String url) {
-    if (url.startsWith("postgres://")) {
-      return "jdbc:postgresql://" + url.substring("postgres://".length());
+    if (!url.startsWith("postgres://") && !url.startsWith("postgresql://")) {
+      return url;
     }
-    if (url.startsWith("postgresql://")) {
-      return "jdbc:postgresql://" + url.substring("postgresql://".length());
+    String rest = url.substring(url.indexOf("//") + 2);
+    int at = rest.lastIndexOf('@');
+    if (at != -1) {
+      // The JDBC driver cannot parse user:password@host embedded in the URL
+      // (it splits the authority on the first colon), so credentials are
+      // dropped here and provided via spring.datasource.username/password.
+      rest = rest.substring(at + 1);
     }
-    return url;
+    String authority = rest;
+    String path = "";
+    int slash = rest.indexOf('/');
+    if (slash != -1) {
+      authority = rest.substring(0, slash);
+      path = rest.substring(slash);
+    }
+    // Render's internal connection string is a bare dpg-...-a hostname with no
+    // port; make the default port explicit so the driver parses it cleanly.
+    if (!authority.contains(":")) {
+      authority = authority + ":5432";
+    }
+    return "jdbc:postgresql://" + authority + path;
   }
 }
