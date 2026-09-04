@@ -10,6 +10,12 @@
 #     Dockerfile, so the stages are inlined per service here.
 #   * Backend + frontend are separate services. Render auto-provisions HTTPS;
 #     the frontend nginx speaks plain HTTP:80 to the edge.
+#   * Render defaults the expected HTTP port to 10000 (the PORT env var) and
+#     probes the container for a listener there. When the app binds a different
+#     port instead, the deploy log shows "Detected a new open port HTTP:xxxx"
+#     and the deploy stalls instead of going Live. Each service below therefore
+#     overrides PORT to match the port its image actually listens on (8080 for
+#     the backend JAR, 80 for the frontend nginx).
 #   * dictionary.db is committed to the repo and baked into the backend image.
 #     Free-tier web services have no persistent disk, so the dictionary is
 #     updated by committing a new dictionary.db and redeploying.
@@ -27,8 +33,16 @@ services:
     dockerfilePath: ./Dockerfile.backend
     dockerContext: .
     plan: free
-    healthCheckPath: /api/health
+    # No healthCheckPath: the app takes ~90s to start serving on a cold free
+    # instance, and an HTTP health check trailing that window keeps failing
+    # and getting the deploy stuck/suspended. Without it Render marks the
+    # service Live as soon as the port accepts connections.
     envVars:
+      # Spring Boot binds server.port=8080; align Render's expected port so it
+      # routes traffic there instead of the default 10000 (which otherwise logs
+      # "Detected a new open port HTTP:8080" and stalls the deploy).
+      - key: PORT
+        value: "8080"
       - key: QUICKQUILL_DICTIONARY_PATH
         value: /app/dictionary.db
       - key: DB_SSLMODE
@@ -65,6 +79,10 @@ services:
     dockerContext: .
     plan: free
     envVars:
+      # nginx render.conf listens on plain HTTP:80; align Render's expected
+      # port so it routes traffic there instead of the default 10000.
+      - key: PORT
+        value: "80"
       - key: BACKEND_URL
         value: http://quickquill-backend.onrender.com
 
