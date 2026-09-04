@@ -83,8 +83,12 @@ services:
       # port so it routes traffic there instead of the default 10000.
       - key: PORT
         value: "80"
+      # Full origin of the backend web service. The blueprint slug carries a
+      # random suffix (quickquill-backend-x3tr) — quickquill-backend.onrender.com
+      # is an older, suspended manual service and must not be used. HTTPS avoids
+      # Render's HTTP->HTTPS 301 (nginx won't follow proxy redirects).
       - key: BACKEND_URL
-        value: http://quickquill-backend.onrender.com
+        value: https://quickquill-backend-x3tr.onrender.com
 
 databases:
   - name: quickquill-db
