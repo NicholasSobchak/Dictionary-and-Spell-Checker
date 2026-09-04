@@ -165,10 +165,10 @@ git clone --depth=1 https://github.com/microsoft/vcpkg.git
 #### Build C++ Engine
 
 ```bash
-cmake -S . -B build \
+cmake -S engine -B engine/build \
   -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
   -DVCPKG_TARGET_TRIPLET=x64-linux
-cmake --build build 
+cmake --build engine/build 
 ```
 
 #### Build Spring Boot Backend
@@ -204,8 +204,8 @@ npm start
 
 **C++ tests (Catch2):**
 ```bash
-cmake --build build 
-./build/engine/tests/runTests
+cmake --build engine/build 
+./engine/build/tests/runTests
 ```
 
 ---

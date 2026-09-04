@@ -41,13 +41,13 @@ spotless {
 
 tasks.named('test') {
 	useJUnitPlatform()
-	systemProperty 'java.library.path', '../build/engine/src'
+	systemProperty 'java.library.path', '../engine/build/src'
 	systemProperty 'quickquill.dictionary-path', file('src/test/resources/dictionary-fixture.db').absolutePath
 	jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 bootRun {
-	systemProperty 'java.library.path', '../build/engine/src'
+	systemProperty 'java.library.path', '../engine/build/src'
 	jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 

@@ -1,5 +1,6 @@
 # Ignore local build artifacts and large files
 build/
+engine/build/
 studio/build/
 studio/.gradle/
 .dictionary.db

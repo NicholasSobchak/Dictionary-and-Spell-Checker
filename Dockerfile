@@ -34,18 +34,18 @@ RUN git clone --depth=1 --branch 2025.04.09 https://github.com/microsoft/vcpkg.g
   && /src/vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 COPY . /src/
-RUN /src/vcpkg/vcpkg install --triplet x64-linux
+RUN cd /src/engine && /src/vcpkg/vcpkg install --triplet x64-linux
 
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+RUN cmake -S /src/engine -B /src/engine/build -DCMAKE_BUILD_TYPE=Release \
      -DCMAKE_TOOLCHAIN_FILE=/src/vcpkg/scripts/buildsystems/vcpkg.cmake \
      -DVCPKG_TARGET_TRIPLET=x64-linux \
-  && cmake --build build --target quickquill_engine -j$(nproc)
+  && cmake --build /src/engine/build --target quickquill_engine -j$(nproc)
 
 ### Stage 4: Spring Boot build
 FROM eclipse-temurin:25-jdk AS backend-build
 WORKDIR /src
 COPY studio/ ./
-COPY --from=engine-build /src/build/engine/src/libquickquill_engine.so /src/build/engine/src/libquickquill_engine.so
+COPY --from=engine-build /src/engine/build/src/libquickquill_engine.so /src/engine/build/src/libquickquill_engine.so
 RUN ./gradlew bootJar
 
 ### Stage 5: backend runtime image (target: backend)
@@ -53,7 +53,7 @@ FROM eclipse-temurin:25-jre AS backend
 WORKDIR /app
 
 COPY --from=backend-build /src/build/libs/*.jar ./app.jar
-COPY --from=engine-build /src/build/engine/src/libquickquill_engine.so ./libquickquill_engine.so
+COPY --from=engine-build /src/engine/build/src/libquickquill_engine.so ./libquickquill_engine.so
 
 EXPOSE 8080
 CMD ["java", "--enable-native-access=ALL-UNNAMED", "-Djava.library.path=.", "-jar", "app.jar", "--quickquill.dictionary-path=/app/dictionary.db"]

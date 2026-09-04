@@ -38,14 +38,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/vcpkg/archives
-          key: vcpkg-glibc231-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-glibc231-${{ hashFiles('engine/vcpkg.json') }}
           restore-keys: vcpkg-glibc231-
 
       - name: Cache vcpkg tool
         uses: actions/cache@v4
         with:
           path: vcpkg
-          key: vcpkg-tool-glibc231-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-tool-glibc231-${{ hashFiles('engine/vcpkg.json') }}
           restore-keys: vcpkg-tool-glibc231-
 
       - name: Build engine in Ubuntu 20.04 container (glibc 2.31)
@@ -69,11 +69,11 @@ jobs:
                 git -C vcpkg checkout 2025.04.09
                 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
               fi
-              cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=/workspace/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux
-              cmake --build build --target quickquill_engine
+              cmake -B engine/build -S engine -G Ninja -DCMAKE_TOOLCHAIN_FILE=/workspace/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux
+              cmake --build engine/build --target quickquill_engine
               if [ "$RUN_TESTS" = "true" ]; then
-                cmake --build build --target runTests
-                ctest --test-dir build --output-on-failure
+                cmake --build engine/build --target runTests
+                ctest --test-dir engine/build --output-on-failure
               fi
             '
 
@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: engine
-          path: build/engine/src/libquickquill_engine.so
+          path: engine/build/src/libquickquill_engine.so
           if-no-files-found: error
 
   build-backend:
