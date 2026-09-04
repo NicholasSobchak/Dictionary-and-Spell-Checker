@@ -4,9 +4,8 @@
 #   * backend  - Spring Boot JAR + C++ engine libquickquill_engine.so
 #   * frontend - nginx serving the built Angular app
 #
-# Consumed by:
-#   * the self-hosted stack (scripts/deploy_docker.sh + compose.prod.yml), and
-#   * managed platforms (e.g. Render) building directly from this repo.
+# Images are built and pushed by .github/workflows/deploy.yml, then pulled on
+# the VPS (see compose.prod.yml and scripts/deploy_docker.sh).
 
 ### Stage 1: Angular frontend build
 FROM node:20-slim AS frontend-build
@@ -18,13 +17,7 @@ RUN npm run build
 
 ### Stage 2: nginx runtime image (target: frontend)
 FROM nginx:stable-alpine AS frontend
-# Self-hosted stack: docker.conf is active (TLS at the container, certs bind
-# mounted by compose.prod.yml).
 COPY nginx/docker.conf /etc/nginx/conf.d/default.conf
-# Render: render.conf is kept as an inert template. Render TLS-terminates at
-# the edge, so the container serves plain HTTP:80; its start command envsubst's
-# this template (BACKEND_URL) into the active conf.
-COPY nginx/render.conf /etc/nginx/conf.d/default.conf.template
 COPY --from=frontend-build /web/dist/browser /usr/share/nginx/html
 
 EXPOSE 80 443
@@ -61,16 +54,6 @@ WORKDIR /app
 
 COPY --from=backend-build /src/build/libs/*.jar ./app.jar
 COPY --from=engine-build /src/engine/build/src/libquickquill_engine.so ./libquickquill_engine.so
-# Bake the dictionary into the image when it is present in the build context
-# (local/VPS builds that have dictionary.db). It is gitignored and may be absent
-# on platforms like Render that build from the repo alone; there, provide it at
-# runtime via a mounted Render Disk and point QUICKQUILL_DICTIONARY_PATH at it.
-# The glob keeps the build green in both cases.
-COPY dictionary.db* ./
 
 EXPOSE 8080
-# The dictionary path is left to the QUICKQUILL_DICTIONARY_PATH env var (with a
-# Docker default supplied via ENV below) so managed platforms like Render can
-# override it without a code change.
-ENV QUICKQUILL_DICTIONARY_PATH=/app/dictionary.db
-CMD ["java", "--enable-native-access=ALL-UNNAMED", "-Djava.library.path=.", "-jar", "app.jar"]
+CMD ["java", "--enable-native-access=ALL-UNNAMED", "-Djava.library.path=.", "-jar", "app.jar", "--quickquill.dictionary-path=/app/dictionary.db"]

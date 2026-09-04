@@ -1,9 +1,8 @@
 name: Deploy to Production
 
-# Deploys are manual-only while the VPS backend startup/health failure is
-# being diagnosed (every push to main was triggering a ~20-min failing
-# deploy + rollback). Re-enable the push trigger once the root cause is fixed.
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 concurrency:

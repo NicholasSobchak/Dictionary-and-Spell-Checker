@@ -234,6 +234,17 @@ PUB=$(curl -s -o /tmp/pub.json -w "%{http_code}" -X POST \
   -d "email=probe@quickquill.ink" -d "password=probe" || true)
 [ "$PUB" = "401" ] || rollback "auth not reachable via nginx (got $PUB)"
 
+# ---------- 7b. Prune old images (the root disk is only ~10GB) ----------
+# Every deploy tags images with the commit SHA; without cleanup the disk
+# fills up, which takes PostgreSQL down ("rejecting connections") and
+# crash-loops the backend. Keep latest + the current tag, drop older SHAs.
+log "Pruning old docker images"
+sudo docker image prune -f >/dev/null 2>&1 || true
+sudo docker image ls --format '{{.Repository}}:{{.Tag}}' \
+  | grep -E 'quickquill-(backend|frontend)' \
+  | grep -v ':latest' | grep -v ":$DOCKER_TAG" \
+  | while read -r img; do sudo docker rmi "$img" >/dev/null 2>&1 || true; done
+
 # ---------- 8. Record the now-current tag for the next rollback ----------
 echo "$DOCKER_TAG" | sudo tee "$PREV_TAG_FILE" >/dev/null
 
