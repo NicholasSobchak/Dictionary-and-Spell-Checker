@@ -70,26 +70,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure deploy directory exists and is writable
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          timeout: 30s
-          script: |
-            sudo mkdir -p /var/www/quickquill/scripts
-            sudo chown -R "$USER": /var/www/quickquill
-
-      - name: Upload compose file and deploy script to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "compose.prod.yml,scripts/deploy_docker.sh"
-          target: /var/www/quickquill
-          strip_components: 0
+      - name: Copy compose file and deploy script to VPS
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          umask 077
+          printf '%s' "$SSH_KEY" > "$HOME/.ssh/id_qq"
+          SSH_OPTS="-i $HOME/.ssh/id_qq -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes"
+          SSH_TARGET="$SSH_USERNAME@$SSH_HOST"
+          # Ensure the target dirs exist and are owned by the SSH user. The
+          # deploy script runs via sudo; only the dir creation needs sudo.
+          ssh $SSH_OPTS "$SSH_TARGET" \
+            "sudo mkdir -p /var/www/quickquill/scripts && sudo chown -R $SSH_USERNAME: /var/www/quickquill"
+          scp $SSH_OPTS compose.prod.yml "$SSH_TARGET:/var/www/quickquill/compose.prod.yml"
+          scp $SSH_OPTS scripts/deploy_docker.sh \
+            "$SSH_TARGET:/var/www/quickquill/scripts/deploy_docker.sh"
+          rm -f "$HOME/.ssh/id_qq"
 
       - name: Run production deploy script
         uses: appleboy/ssh-action@v1.0.0
