@@ -32,11 +32,22 @@ services:
       - key: QUICKQUILL_DICTIONARY_PATH
         value: /app/dictionary.db
       - key: DB_SSLMODE
-        value: disable
-      - key: DB_URL
+        value: require
+      # Render's fromDatabase connectionString is a non-JDBC postgres:// URL,
+      # so the JDBC URL is assembled in application.properties from these
+      # parts instead.
+      - key: DB_HOST
         fromDatabase:
           name: quickquill-db
-          property: connectionString
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: quickquill-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: quickquill-db
+          property: database
       - key: DB_USERNAME
         fromDatabase:
           name: quickquill-db
