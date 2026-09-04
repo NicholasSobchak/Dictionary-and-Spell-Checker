@@ -128,7 +128,7 @@ public class WordEngine {
                   arena.allocateFrom(suggestedJson != null ? suggestedJson : "[]"),
                   buf,
                   BUF_SIZE);
-      return len >= 0 ? buf.getString(0) : "";
+      return len >= 0 ? readString(buf, len) : "";
     } catch (Throwable e) {
       throw new RuntimeException("autofill failed", e);
     }
@@ -139,9 +139,21 @@ public class WordEngine {
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment buf = arena.allocate(BUF_SIZE);
       int len = (int) handle.invoke(arena.allocateFrom(arg), buf, BUF_SIZE);
-      return len >= 0 ? buf.getString(0) : "";
+      return len >= 0 ? readString(buf, len) : "";
     } catch (Throwable e) {
       throw new RuntimeException("Native call failed", e);
     }
+  }
+
+  /**
+   * Reads the NUL-terminated string written by the engine. The engine truncates at {@code BUF_SIZE
+   * - 1} bytes; when the return value reached that limit the JSON was cut off, so we fail loudly
+   * instead of silently returning incomplete data.
+   */
+  private static String readString(MemorySegment buf, int len) {
+    if (len >= BUF_SIZE - 1) {
+      throw new RuntimeException("Engine response exceeded buffer size " + BUF_SIZE);
+    }
+    return buf.getString(0);
   }
 }
