@@ -36,12 +36,6 @@ public class Document {
 
   public Document() {}
 
-  public Document(User user) {
-    this.user = user;
-    this.title = "Untitled";
-    this.updatedAt = Instant.now();
-  }
-
   public Document(User user, String title, String content) {
     this.user = user;
     this.title = title;
@@ -51,10 +45,6 @@ public class Document {
 
   public Long getId() {
     return id;
-  }
-
-  public User getUser() {
-    return user;
   }
 
   public String getTitle() {
@@ -73,10 +63,6 @@ public class Document {
   public void setContent(String content) {
     this.content = content;
     this.updatedAt = Instant.now();
-  }
-
-  public Instant getCreatedAt() {
-    return createdAt;
   }
 
   public Instant getUpdatedAt() {

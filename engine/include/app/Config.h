@@ -19,7 +19,6 @@ public:
   Config operator=(Config &&) = delete;
 
   std::string getDatabasePath() const;
-  int getServerPort() const;
 
 private:
   Config();

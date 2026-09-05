@@ -39,15 +39,7 @@ public class SuggestedWord {
     return id;
   }
 
-  public User getUser() {
-    return user;
-  }
-
   public String getWord() {
     return word;
-  }
-
-  public Instant getCreatedAt() {
-    return createdAt;
   }
 }

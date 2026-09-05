@@ -1,5 +1,4 @@
 #include "core/Trie.h"
-#include "logging.h"
 
 #include <cctype> // for std::tolower()
 
@@ -68,50 +67,6 @@ bool Trie::contains(std::string_view word) const
   return node->m_isEndOfWord;
 }
 
-void Trie::dump() const
-{
-  QQ_LOG_DEBUG << "(root)";
-  dumpNode(m_root.get(), ""); // call recursive dump node function
-}
-
-void Trie::dumpWord(std::string_view word) const
-{
-  if (!contains(word))
-  {
-    return;
-  }
-  const TrieNode *node{m_root.get()};
-  if (!node)
-  {
-    return;
-  }
-
-  QQ_LOG_DEBUG << "(root)";
-  size_t depth{0}; // depth to left of screen
-
-  for (char c : word)
-  {
-    int index = indexForChar(c);
-
-    if (index < 0 || !node->m_children[index])
-    {
-      QQ_LOG_DEBUG << std::string(depth * 4, ' ') << "└── " << c << "(missing)";
-      return;
-    }
-
-    node = node->m_children[index].get();
-
-    std::stringstream ss;
-    ss << std::string(depth * 4, ' ') << "└── " << c;
-    if (node->m_isEndOfWord)
-    {
-      ss << " *";
-    }
-    QQ_LOG_DEBUG << ss.str();
-    ++depth;
-  }
-}
-
 void Trie::clear()
 {
   m_root = std::make_unique<TrieNode>(); // reset root
@@ -162,26 +117,6 @@ dct::WordId Trie::getWordId(std::string_view word) const
     return node->m_wordID;
   }
   return dct::WordId{dct::g_defaultId};
-}
-
-std::string Trie::getPrefix(std::string_view word) const
-{
-  const TrieNode *node{m_root.get()};
-  std::string prefix;
-
-  for (char c : word)
-  {
-    int index = indexForChar(c);
-    if (index < 0 || !node || !node->m_children[index])
-    {
-      break;
-    }
-
-    prefix.push_back(charForIndex(index));
-    node = node->m_children[index].get();
-  }
-
-  return prefix;
 }
 
 /**
@@ -237,49 +172,6 @@ char Trie::charForIndex(int index)
     return static_cast<char>('a' + index);
   }
   return static_cast<char>('0' + (index - 26));
-}
-
-void Trie::dumpNode(const TrieNode *node, const std::string &prefix) const
-{
-  if (!node)
-  {
-    return;
-  }
-
-  // DFS
-  for (int i{0}; i < dct::g_alpha; ++i)
-  {
-    char letter{charForIndex(i)};
-    const TrieNode *child = node->m_children[i].get();
-    if (!child)
-    {
-      continue;
-    }
-    bool isLast = true;
-
-    // check for another sibling
-    for (int j{i + 1}; j < dct::g_alpha; ++j)
-    {
-      // check for later children
-      if (node->m_children[j])
-      {
-        // current child is not the last sibling
-        isLast = false;
-        break;
-      }
-    }
-
-    // print graphics
-    std::stringstream ss;
-    ss << prefix << (isLast ? "└── " : "├── ") << letter;
-    if (child->m_isEndOfWord)
-    {
-      ss << " *";
-    }
-    QQ_LOG_DEBUG << ss.str();
-
-    dumpNode(child, prefix + (isLast ? "    " : "│   "));
-  }
 }
 
 bool Trie::removeWord(TrieNode *node, std::string_view word)

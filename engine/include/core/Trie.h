@@ -1,7 +1,6 @@
 #ifndef TRIE_H
 #define TRIE_H
 #include <array>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -25,10 +24,7 @@ public:
       std::vector<std::pair<std::string, dct::Frequency>> &out,
       std::size_t limit) const;
 
-  void dump() const;
-  void dumpWord(std::string_view word) const;
   void clear();
-  std::string getPrefix(std::string_view word) const;
 
 private:
   struct TrieNode
@@ -44,7 +40,6 @@ private:
   static char charForIndex(int index);
 
   bool removeWord(TrieNode *node, std::string_view word);
-  void dumpNode(const TrieNode *node, const std::string &prefix) const;
   void wordsFromNode(
       const TrieNode *node,
       std::string &currentWord,

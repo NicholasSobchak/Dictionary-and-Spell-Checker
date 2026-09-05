@@ -52,10 +52,6 @@ public class User {
     return displayName;
   }
 
-  public Instant getCreatedAt() {
-    return createdAt;
-  }
-
   public void setPasswordHash(String password) {
     this.password = password;
   }
